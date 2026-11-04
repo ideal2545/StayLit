@@ -4,7 +4,16 @@ StayLit is a small menu bar utility for macOS *(version 12 and newer)* that keep
 
 ## Installation
 
-StayLit has no published releases yet. Build it from source with Xcode 27.2 (the build command is in [FORK-NOTES.md](FORK-NOTES.md)), then copy `StayLit.app` to `/Applications`.
+StayLit has no published releases yet. Build it from source with Xcode 27.2, signing with your own team ID:
+
+```sh
+xcodebuild -workspace StayLit.xcworkspace -scheme "StayLit (Direct)" \
+  -configuration Release -derivedDataPath build -destination 'platform=macOS' \
+  DEVELOPMENT_TEAM=<your team> CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY="Apple Development" \
+  PROVISIONING_PROFILE_SPECIFIER=""
+```
+
+Then copy `build/Build/Products/Release/StayLit.app` to `/Applications`. An *Apple Development* signature only runs on the Mac that built it.
 
 ## How does it work?
 
