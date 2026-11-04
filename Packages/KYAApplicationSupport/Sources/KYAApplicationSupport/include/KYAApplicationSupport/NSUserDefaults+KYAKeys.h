@@ -22,6 +22,7 @@ KYA_EXPORT NSString * const KYAUserDefaultsKeyBatteryCapacityThresholdEnabled;
 KYA_EXPORT NSString * const KYAUserDefaultsKeyBatteryCapacityThreshold;
 KYA_EXPORT NSString * const KYAUserDefaultsKeyLowPowerModeMonitoringEnabled;
 KYA_EXPORT NSString * const KYAUserDefaultsKeyPreReleaseUpdatesEnabled;
+KYA_EXPORT NSString * const KYAUserDefaultsKeyToggleHotKey;
 
 @interface NSUserDefaults (KYAKeys)
 
@@ -57,6 +58,10 @@ KYA_EXPORT NSString * const KYAUserDefaultsKeyPreReleaseUpdatesEnabled;
 
 /// Returns YES if the app should deactivate when the user account is switched.
 @property (nonatomic, getter=kya_isDeactivateOnUserSwitchEnabled) BOOL kya_deactivateOnUserSwitchEnabled;
+
+/// StayLit: the keyboard shortcut that turns StayLit on or off, as a
+/// dictionary from `-[KYAHotKey dictionaryRepresentation]`, or nil for none.
+@property (nonatomic, copy, nullable) NSDictionary *kya_toggleHotKey;
 
 @end
 

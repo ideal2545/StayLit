@@ -104,4 +104,19 @@ KYA_GENERATE_BOOL_TEST(isLowPowerModeMonitoringEnabled,
     XCTAssertEqual([defaults floatForKey:key], 100.0f); // Setter now clamps the value
 }
 
+- (void)testToggleHotKey
+{
+    Auto defaults = self.defaults;
+    XCTAssertEqualObjects(KYAUserDefaultsKeyToggleHotKey, @"info.marcel-dierkes.KeepingYouAwake.ToggleHotKey");
+    XCTAssertNil(defaults.kya_toggleHotKey);
+
+    NSDictionary *hotKey = @{ @"keyCode": @37, @"modifierFlags": @(1 << 20) };
+    defaults.kya_toggleHotKey = hotKey;
+    XCTAssertEqualObjects(defaults.kya_toggleHotKey, hotKey);
+
+    defaults.kya_toggleHotKey = nil;
+    XCTAssertNil(defaults.kya_toggleHotKey);
+    XCTAssertNil([defaults objectForKey:KYAUserDefaultsKeyToggleHotKey]);
+}
+
 @end

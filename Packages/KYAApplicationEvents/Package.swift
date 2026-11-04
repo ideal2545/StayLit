@@ -18,6 +18,9 @@ let package = Package(
             name: "KYAApplicationEvents",
             dependencies: [
                 .product(name: "KYACommon", package: "KYACommon"),
+            ],
+            linkerSettings: [
+                .linkedFramework("Carbon"),
             ]
         ),
         .testTarget(name: "KYAApplicationEventsTests", dependencies: ["KYAApplicationEvents"]),

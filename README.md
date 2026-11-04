@@ -12,6 +12,10 @@ StayLit has no published releases yet. Build it from source with Xcode 27.2 (the
 
 StayLit is a small wrapper around Apple's `caffeinate` command line utility, which ships with every current version of macOS. It can also be controlled with `staylit://` URLs (see [Automation](Documentation/Automation.md)).
 
+### Keyboard shortcut
+
+Set a shortcut in *Settings > General* to turn StayLit on or off from any app. It needs ⌘, ⌥ or ⌃, unless it's a function key (F1–F20). Press Delete while recording to remove it.
+
 ### Does it work on a MacBook with a closed lid?
 
 No. macOS has *(sensible)* limits here, and heat is a concern, so StayLit only prevents sleep on desktop Macs and on portable Macs with the lid open.

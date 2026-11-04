@@ -29,6 +29,9 @@
 // Settings that require restarting caffeinate when changed
 @property (nonatomic) BOOL lastAllowDisplaySleep;
 
+// Keyboard shortcut
+@property (nonatomic, nullable) NSDictionary *lastToggleHotKey;
+
 // Captured on session resign so a clock time or one-off resumes at its original end
 @property (nonatomic, nullable) KYAActivationDuration *workspaceActivationDuration;
 @property (nonatomic, nullable) NSDate *workspaceFireDate;
@@ -58,6 +61,7 @@
         [self configureEventHandler];
         [self configureUserNotificationCenter];
         [self configureMainMenu];
+        [self configureToggleHotKey];
 
         Auto center = NSNotificationCenter.defaultCenter;
         [center addObserver:self
@@ -352,13 +356,47 @@
 
 - (void)applyChangedUserDefaultsIfNeeded
 {
-    BOOL allowDisplaySleep = [NSUserDefaults.standardUserDefaults kya_shouldAllowDisplaySleep];
-    if(allowDisplaySleep == self.lastAllowDisplaySleep) { return; }
-    self.lastAllowDisplaySleep = allowDisplaySleep;
-    
-    // Apply the display sleep setting to a running activation right away,
-    // instead of only on the next activation.
-    [self.sleepWakeTimer refreshCaffeinateTask];
+    Auto defaults = NSUserDefaults.standardUserDefaults;
+
+    BOOL allowDisplaySleep = [defaults kya_shouldAllowDisplaySleep];
+    if(allowDisplaySleep != self.lastAllowDisplaySleep)
+    {
+        self.lastAllowDisplaySleep = allowDisplaySleep;
+
+        // Apply the display sleep setting to a running activation right away,
+        // instead of only on the next activation.
+        [self.sleepWakeTimer refreshCaffeinateTask];
+    }
+
+    Auto toggleHotKey = defaults.kya_toggleHotKey;
+    if((toggleHotKey != nil || self.lastToggleHotKey != nil)
+       && [toggleHotKey isEqualToDictionary:self.lastToggleHotKey] == NO)
+    {
+        [self configureToggleHotKey];
+    }
+}
+
+#pragma mark - Keyboard Shortcut
+
+- (void)configureToggleHotKey
+{
+    Auto dictionary = NSUserDefaults.standardUserDefaults.kya_toggleHotKey;
+    self.lastToggleHotKey = dictionary;
+
+    Auto hotKey = [KYAHotKey hotKeyWithDictionaryRepresentation:dictionary];
+    AutoWeak weakSelf = self;
+    BOOL registered = [KYAHotKeyCenter.sharedCenter registerHotKey:hotKey handler:^{
+        Auto strongSelf = weakSelf;
+        [strongSelf statusItemControllerShouldPerformPrimaryAction:strongSelf.statusItemController];
+    }];
+
+    if(registered == NO && dictionary != nil)
+    {
+        // Don't keep a shortcut that doesn't work. Settings shows an alert
+        // (KYAHotKeyCenterRegistrationDidFailNotification).
+        self.lastToggleHotKey = nil;
+        NSUserDefaults.standardUserDefaults.kya_toggleHotKey = nil;
+    }
 }
 
 #pragma mark - Workspace Session Handling

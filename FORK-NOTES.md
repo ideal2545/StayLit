@@ -37,8 +37,18 @@ It now has its own test target (9 tests). The whole suite is 62 tests, all passi
 
 Each PR was merged with its original commits, so the authors keep authorship in the git history. They are also thanked in [CHANGELOG.md](CHANGELOG.md).
 
+### Keyboard shortcut
+Upstream [#190](https://github.com/newmarcel/KeepingYouAwake/issues/190). *Settings > General > Keyboard Shortcut* records a system-wide shortcut that does the same as clicking the menu bar icon.
+
+- **Code:** `KYAHotKey`, `KYAHotKeyCenter` and `KYAHotKeyRecorderButton` live in the `KYAApplicationEvents` package.
+- **No permission needed:** it uses the Carbon hot key API (`RegisterEventHotKey`), which works in the sandbox. `NSEvent` global monitors would need Accessibility access and can't swallow the key.
+- **Stored in defaults:** the shortcut is saved as a key code plus modifiers under `info.marcel-dierkes.KeepingYouAwake.ToggleHotKey`. The app controller re-registers it whenever it changes.
+- **Recording:** a shortcut needs ⌘, ⌥ or ⌃ (function keys work alone). Escape cancels and Delete removes the shortcut. The current shortcut is paused while recording, so typing it doesn't toggle StayLit. Pauses nest, and only one recorder records at a time.
+- **Refused shortcuts:** if macOS refuses a shortcut, StayLit removes it and Settings shows an alert.
+- **Limitation:** macOS doesn't report a clash with another app's shortcut. If two apps register the same one, only one of them gets it.
+
 ### Not done (feature requests, left for later)
-Lid-closed modes (#255, #258, #262, #266), CLI status (#225), notification toggles (#172), schedules (#189), keyboard shortcut (#190), and deactivating on lock/sleep (#93, #98, #108) are all new features, not compatibility work. #235 (activate on *window* mirroring / AirPlay) needs hardware to reproduce.
+Lid-closed modes (#255, #258, #262, #266), CLI status (#225), notification toggles (#172), schedules (#189), and deactivating on lock/sleep (#93, #98, #108) are all new features, not compatibility work. #235 (activate on *window* mirroring / AirPlay) needs hardware to reproduce.
 
 ## Fork-specific setup
 - **Sparkle updates** point at `https://ideal2545.github.io/StayLit/appcast.xml`. That URL doesn't exist yet, so update checks fail quietly instead of offering upstream builds that would overwrite this fork. Shipping updates later needs GitHub Pages plus an appcast, and builds signed with the same Developer ID each time. Sparkle can also use an EdDSA key (`generate_keys`); upstream never set one.
