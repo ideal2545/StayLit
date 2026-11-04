@@ -100,4 +100,25 @@ NSString * const KYAUserDefaultsKeyBatteryCapacityThreshold = @"info.marcel-dier
     [self setFloat:(float)clampedThreshold forKey:KYAUserDefaultsKeyBatteryCapacityThreshold];
 }
 
+#pragma mark - Toggle Hot Key
+
+NSString * const KYAUserDefaultsKeyToggleHotKey = @"info.marcel-dierkes.KeepingYouAwake.ToggleHotKey";
+
+- (NSDictionary *)kya_toggleHotKey
+{
+    return [self dictionaryForKey:KYAUserDefaultsKeyToggleHotKey];
+}
+
+- (void)setKya_toggleHotKey:(NSDictionary *)toggleHotKey
+{
+    if(toggleHotKey == nil)
+    {
+        [self removeObjectForKey:KYAUserDefaultsKeyToggleHotKey];
+    }
+    else
+    {
+        [self setObject:toggleHotKey forKey:KYAUserDefaultsKeyToggleHotKey];
+    }
+}
+
 @end

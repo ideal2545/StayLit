@@ -24,6 +24,7 @@ KYA_EXPORT NSString * const KYAUserDefaultsKeyLowPowerModeMonitoringEnabled;
 KYA_EXPORT NSString * const KYAUserDefaultsKeyPreReleaseUpdatesEnabled;
 KYA_EXPORT NSString * const KYAUserDefaultsKeyKeepAwakeWithLidClosed;
 KYA_EXPORT NSString * const KYAUserDefaultsKeyLidSleepDisabledByApp;
+KYA_EXPORT NSString * const KYAUserDefaultsKeyToggleHotKey;
 
 @interface NSUserDefaults (KYAKeys)
 
@@ -67,6 +68,10 @@ KYA_EXPORT NSString * const KYAUserDefaultsKeyLidSleepDisabledByApp;
 /// Internal: YES while the app itself has turned `pmset disablesleep` on,
 /// so it knows to turn it off again (also after a crash).
 @property (nonatomic, getter=kya_isLidSleepDisabledByApp) BOOL kya_lidSleepDisabledByApp;
+
+/// StayLit: the keyboard shortcut that turns StayLit on or off, as a
+/// dictionary from `-[KYAHotKey dictionaryRepresentation]`, or nil for none.
+@property (nonatomic, copy, nullable) NSDictionary *kya_toggleHotKey;
 
 @end
 

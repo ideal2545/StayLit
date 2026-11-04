@@ -10,3 +10,6 @@
 #import <KYAApplicationEvents/KYAEvent.h>
 #import <KYAApplicationEvents/KYAEventHandler.h>
 #import <KYAApplicationEvents/KYAEventHandler+KYADefaultEventHandler.h>
+#import <KYAApplicationEvents/KYAHotKey.h>
+#import <KYAApplicationEvents/KYAHotKeyCenter.h>
+#import <KYAApplicationEvents/KYAHotKeyRecorderButton.h>
