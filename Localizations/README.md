@@ -13,7 +13,7 @@ XLIFF files should be committed with any new translation and will be kept up-to-
 This directory contains helper scripts to import/export localizations.
 
 - `l10n-export.sh`: Exports all localizations
-- `l10n-import.sh`: Imports all localizations from the `KeepingYouAwake` sub directory (the original project name, kept so upstream changes merge cleanly)
+- `l10n-import.sh`: Imports all localizations from the `StayLit` sub directory
 - `l10n-update.sh`: Exports/Imports all translations
     - after the execution, all XLIFF files should be in sync
 - `l10n-config.sh`: contains the list of translations in the `TRANSLATIONS` variable

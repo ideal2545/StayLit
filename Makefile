@@ -1,4 +1,4 @@
-NAME = KeepingYouAwake
+NAME = StayLit
 APP_NAME = StayLit
 VERSION = 1.6.9
 

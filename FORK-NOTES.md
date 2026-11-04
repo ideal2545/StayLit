@@ -44,13 +44,13 @@ Lid-closed modes (#255, #258, #262, #266), CLI status (#225), notification toggl
 - **Sparkle updates** point at `https://ideal2545.github.io/StayLit/appcast.xml`. That URL doesn't exist yet, so update checks fail quietly instead of offering upstream builds that would overwrite this fork. Shipping updates later needs GitHub Pages plus an appcast, and builds signed with the same Developer ID each time. Sparkle can also use an EdDSA key (`generate_keys`); upstream never set one.
 - **Signing:** the project still contains upstream's `DEVELOPMENT_TEAM`. Override it on the command line rather than committing your own team ID:
   ```sh
-  xcodebuild -workspace KeepingYouAwake.xcworkspace -scheme "KeepingYouAwake (Direct)" \
+  xcodebuild -workspace StayLit.xcworkspace -scheme "StayLit (Direct)" \
     -configuration Release -derivedDataPath build -destination 'platform=macOS' \
     DEVELOPMENT_TEAM=<your team> CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY="Apple Development" \
     PROVISIONING_PROFILE_SPECIFIER=""
   ```
   An *Apple Development* signature runs on the Mac that built it. Giving the app to others needs a Developer ID certificate and notarization.
-- **Tests:** `make test` needs `xcbeautify` (`brew install xcbeautify`), or run `xcodebuild test -workspace KeepingYouAwake.xcworkspace -scheme KeepingYouAwake -destination 'platform=macOS'` directly.
+- **Tests:** `make test` needs `xcbeautify` (`brew install xcbeautify`), or run `xcodebuild test -workspace StayLit.xcworkspace -scheme StayLit -destination 'platform=macOS'` directly.
 
 ## Name and bundle identifier
 The fork is called **StayLit**. Its bundle ID is `com.principia29.StayLit` and its launcher's is `com.principia29.StayLit.Launcher`.
@@ -59,10 +59,11 @@ Upstream's README asks that forks not be redistributed under the same name and i
 
 **What changed in the rename**
 - Bundle IDs live in `Configuration.xcconfig` and in the launcher target in the project file. The legacy login-item code in `NSApplication+KYALaunchAtLogin.m` has the launcher ID too. These three must match.
-- `PRODUCT_NAME` is `StayLit` / `StayLit Launcher`. The Xcode targets, schemes, workspace and source folders keep their `KeepingYouAwake` names on purpose, so upstream changes still merge cleanly.
+- `PRODUCT_NAME` is `StayLit` / `StayLit Launcher`. The Xcode project, workspace, targets, schemes and source folders are named StayLit too (`StayLit.xcworkspace`, schemes `StayLit` and `StayLit (Direct)`, sources in `StayLit/`, translations in `Localizations/StayLit/`). Upstream changes still merge, because git follows the renamed paths; edits to `project.pbxproj` may need a hand.
+- Source files that came from KeepingYouAwake keep their original `// KeepingYouAwake` headers (see CONTRIBUTING).
 - Visible strings changed: the Settings window title (all languages), the About window and the credits.
 - URL schemes: `staylit://` is new. `keepingyouawake://` still works.
-- `Makefile`: `NAME` is still the project and scheme name. The new `APP_NAME` names the `dist/` output.
+- `Makefile`: `NAME` is the project and scheme name and `APP_NAME` names the `dist/` output. Both are `StayLit`.
 
 **Left unchanged on purpose**
 - **User defaults keys** keep their `info.marcel-dierkes.KeepingYouAwake.*` prefix. They are internal, they live in StayLit's own sandbox container, and xib bindings refer to them. Renaming them means changing every one at once, in the code and in the xibs.

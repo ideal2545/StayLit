@@ -2,7 +2,7 @@
 set -e
 
 BASE_DIR=$(cd "$(dirname "$0")"; pwd)
-PROJECT_NAME="KeepingYouAwake"
+PROJECT_NAME="StayLit"
 PROJECT_FILE_PATH="${BASE_DIR}/../${PROJECT_NAME}.xcodeproj"
 WORKSPACE_FILE_PATH="${BASE_DIR}/../${PROJECT_NAME}.xcworkspace"
 TARGET_DIR="${BASE_DIR}/${PROJECT_NAME}"

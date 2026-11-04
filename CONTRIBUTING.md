@@ -3,7 +3,7 @@
 Thank you for considering a contribution to `StayLit`! Please open issues and pull requests on [ideal2545/StayLit](https://github.com/ideal2545/StayLit).
 
 ## Localizations
-To update or add a localization, the preferred pull request contains **only** the modified `*.xliff` files inside a `*.xcloc` localization catalog. You can export updated translations from _Xcode_ as an `*.xcloc` catalog. Updated translations go in `Localizations/KeepingYouAwake/<language>.xcloc/Localized Contents/<language>.xliff`. The folder keeps its original name so upstream changes still merge cleanly.
+To update or add a localization, the preferred pull request contains **only** the modified `*.xliff` files inside a `*.xcloc` localization catalog. You can export updated translations from _Xcode_ as an `*.xcloc` catalog. Updated translations go in `Localizations/StayLit/<language>.xcloc/Localized Contents/<language>.xliff`. The folder keeps its original name so upstream changes still merge cleanly.
 
 Keep a localization pull request to a single language, with no unrelated code changes. Pull requests that change `*.xcstrings` files directly are accepted, but please avoid them where you can.
 
