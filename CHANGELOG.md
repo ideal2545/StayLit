@@ -1,43 +1,48 @@
-# StayLit (fork of KeepingYouAwake)
+# Changelog
 
-## Changelog
+## StayLit
 
-StayLit's changes start in v1.6.9 under "Fork additions". Everything else here is the history of [KeepingYouAwake](https://github.com/newmarcel/KeepingYouAwake) by Marcel Dierkes and its contributors. Issue and pull request numbers refer to the KeepingYouAwake repository.
+### v1.6.9 (unreleased)
 
-### v1.6.9
+The first version of StayLit, a fork of [KeepingYouAwake](https://github.com/newmarcel/KeepingYouAwake) 1.6.8 for macOS 27, built with Xcode 27.2. Links to `#` numbers point to KeepingYouAwake issues and pull requests.
 
-- raised minimum deployment target to macOS 12 _(sadly, this is an external requirement by Apple's Xcode developer tools)_
+#### New
 
-Fork additions ([ideal2545/StayLit](https://github.com/ideal2545/StayLit)), built with Xcode 27.2 for macOS 27:
-
-- added _Settings > Advanced > Keep awake when the lid is closed_ (opt-in, upstream [#258](https://github.com/newmarcel/KeepingYouAwake/issues/258) and [#262](https://github.com/newmarcel/KeepingYouAwake/issues/262))
-	- turns the macOS `disablesleep` power setting on while active and off again afterwards, and never turns off a `disablesleep` you set yourself
-	- tells you when something else turns `disablesleep` off during an activation, and when StayLit turns sleep back on, with a _Leave Sleep Disabled_ button
+- **Keep awake with the lid closed:** _Settings > Advanced > Keep awake when the lid is closed_, opt-in ([#258](https://github.com/newmarcel/KeepingYouAwake/issues/258), [#262](https://github.com/newmarcel/KeepingYouAwake/issues/262))
+	- turns the macOS `disablesleep` power setting on while StayLit is on and off again afterwards, and never turns off a `disablesleep` you set yourself
+	- tells you when something else turns `disablesleep` off while StayLit is on, and when StayLit turns sleep back on, with a _Leave Sleep Disabled_ button
+	- turns sleep back on at the next launch, and tells you, if StayLit quit unexpectedly
 	- one-time setup: a helper script in the app's scripts folder, plus an administrator password for a sudoers rule limited to `pmset -a disablesleep 1` and `0`
-- renamed the app to **StayLit** with the bundle ID `com.principia29.StayLit`; it uses a fresh settings container and can run next to the original app
-	- added the `staylit:///` URL scheme; StayLit doesn't answer `keepingyouawake:///` links, so it never takes them from KeepingYouAwake
-- new app icon and menu bar icon: a star rising over a planet
-- added a keyboard shortcut that turns StayLit on or off from any app ([#190](https://github.com/newmarcel/KeepingYouAwake/issues/190))
-	- record it in _Settings > General > Keyboard Shortcut_
-- added the advanced setting _Only notify when StayLit turns on or off by itself_, which skips notifications for changes you make yourself ([#172](https://github.com/newmarcel/KeepingYouAwake/issues/172))
-- added the advanced settings _Pause while the screen is locked_ and _Deactivate when the Mac goes to sleep_ ([#93](https://github.com/newmarcel/KeepingYouAwake/issues/93), [#98](https://github.com/newmarcel/KeepingYouAwake/issues/98), [#108](https://github.com/newmarcel/KeepingYouAwake/issues/108))
-- added activation durations that end at a time of day, e.g. _"Until 5:00 PM"_ ([#263](https://github.com/newmarcel/KeepingYouAwake/pull/263), closes [#161](https://github.com/newmarcel/KeepingYouAwake/issues/161))
+- **Time-of-day durations** such as _"Until 5:00 PM"_ ([#263](https://github.com/newmarcel/KeepingYouAwake/pull/263), closes [#161](https://github.com/newmarcel/KeepingYouAwake/issues/161)). *Thank you [austin-rt](https://github.com/austin-rt)!*
 	- add one in _Settings > Activation Duration > +_ by switching the sheet from _Duration_ to _Until_, and set it as the default like any other duration
 	- _Activate for Duration > Until…_ keeps the Mac awake until a one-off date and time without saving a preset
-	- the URL scheme accepts `staylit:///activate?until=17:00` and `until=2026-10-03T17:00`
-	- *Thank you [austin-rt](https://github.com/austin-rt)!*
-- fixed the remaining time going negative and the activation outliving its duration after the Mac was asleep ([#157](https://github.com/newmarcel/KeepingYouAwake/issues/157))
-- fixed `keepingyouawake:///activate` turning the app off (or showing it as off) when it was already active ([#248](https://github.com/newmarcel/KeepingYouAwake/issues/248))
-- changing "Allow the display to sleep" now applies to a running activation immediately instead of on the next activation
-- added an "Allow the display to sleep" toggle to the menu ([#240](https://github.com/newmarcel/KeepingYouAwake/pull/240), closes [#265](https://github.com/newmarcel/KeepingYouAwake/issues/265))
-	- *Thank you [lucasmezencio](https://github.com/lucasmezencio)!*
-- the remaining time in the menu now updates live while the menu is open ([#241](https://github.com/newmarcel/KeepingYouAwake/pull/241))
-	- *Thank you [bryanvrgsc](https://github.com/bryanvrgsc)!*
-- the battery capacity threshold is clamped to 10–100% when saved ([#242](https://github.com/newmarcel/KeepingYouAwake/pull/242))
-	- *Thank you [bryanvrgsc](https://github.com/bryanvrgsc)!*
-- added missing Korean translations ([#245](https://github.com/newmarcel/KeepingYouAwake/pull/245))
-	- *Thank you [wplong11](https://github.com/wplong11)!*
-- Sparkle update feeds point at this fork instead of upstream
+	- `staylit:///activate?until=17:00` and `until=2026-10-03T17:00`
+- **Keyboard shortcut** that turns StayLit on or off from any app, set in _Settings > General_ ([#190](https://github.com/newmarcel/KeepingYouAwake/issues/190))
+- **Pause while the screen is locked** and **Deactivate when the Mac goes to sleep**, in _Settings > Advanced_ ([#93](https://github.com/newmarcel/KeepingYouAwake/issues/93), [#98](https://github.com/newmarcel/KeepingYouAwake/issues/98), [#108](https://github.com/newmarcel/KeepingYouAwake/issues/108))
+	- a paused activation resumes with its remaining time or end time, and _Deactivate when switched to another user account_ now pauses and resumes the same way
+- **Only notify when StayLit turns on or off by itself:** skips notifications for changes you make yourself ([#172](https://github.com/newmarcel/KeepingYouAwake/issues/172))
+- **Allow the display to sleep** toggle in the menu ([#240](https://github.com/newmarcel/KeepingYouAwake/pull/240), closes [#265](https://github.com/newmarcel/KeepingYouAwake/issues/265)). *Thank you [lucasmezencio](https://github.com/lucasmezencio)!*
+- **New name and icons:** StayLit, with a star rising over a planet as the app icon and a sunrise in the menu bar
+
+#### Changed
+
+- the bundle ID is `com.principia29.StayLit`, so StayLit has its own settings and can run next to KeepingYouAwake
+- the URL scheme is `staylit:///`; StayLit doesn't answer `keepingyouawake:///` links, so it never takes them from KeepingYouAwake
+- changing _Allow the display to sleep_ applies to a running activation right away instead of on the next one
+- the remaining time in the menu updates live while the menu is open ([#241](https://github.com/newmarcel/KeepingYouAwake/pull/241)). *Thank you [bryanvrgsc](https://github.com/bryanvrgsc)!*
+- the battery capacity threshold is clamped to 10–100% when saved ([#242](https://github.com/newmarcel/KeepingYouAwake/pull/242)). *Thank you [bryanvrgsc](https://github.com/bryanvrgsc)!*
+- added missing Korean translations ([#245](https://github.com/newmarcel/KeepingYouAwake/pull/245)). *Thank you [wplong11](https://github.com/wplong11)!*
+- update checks point at StayLit instead of KeepingYouAwake
+- the minimum macOS version is 12
+
+#### Fixed
+
+- the remaining time going negative, and the activation outliving its duration, after the Mac was asleep ([#157](https://github.com/newmarcel/KeepingYouAwake/issues/157))
+- `activate` links turning StayLit off, or showing it as off, when it was already on ([#248](https://github.com/newmarcel/KeepingYouAwake/issues/248))
+
+## KeepingYouAwake
+
+The history of [KeepingYouAwake](https://github.com/newmarcel/KeepingYouAwake) by Marcel Dierkes and its contributors, up to the version StayLit is based on.
 
 ### v1.6.8 (2025-09-12)
 
