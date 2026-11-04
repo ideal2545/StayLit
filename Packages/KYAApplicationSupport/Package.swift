@@ -18,6 +18,9 @@ let package = Package(
             name: "KYAApplicationSupport",
             dependencies: [
                 .product(name: "KYACommon", package: "KYACommon"),
+            ],
+            linkerSettings: [
+                .linkedFramework("IOKit"),
             ]
         ),
         .testTarget(

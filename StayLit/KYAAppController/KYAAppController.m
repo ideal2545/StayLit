@@ -29,6 +29,12 @@
 // Settings that require restarting caffeinate when changed
 @property (nonatomic) BOOL lastAllowDisplaySleep;
 
+// Keep awake with the lid closed
+@property (nonatomic) KYALidSleepSystemCommandRunner *lidSleepRunner;
+@property (nonatomic) KYALidSleepController *lidSleepController;
+@property (nonatomic) BOOL lastKeepAwakeWithLidClosed;
+@property (nonatomic, getter=isSettingUpLidSleep) BOOL settingUpLidSleep;
+
 // Captured on session resign so a clock time or one-off resumes at its original end
 @property (nonatomic, nullable) KYAActivationDuration *workspaceActivationDuration;
 @property (nonatomic, nullable) NSDate *workspaceFireDate;
@@ -54,6 +60,8 @@
     if(self)
     {
         [self configureStatusItemController];
+        // Must run before the sleep wake timer can activate on launch.
+        [self configureLidSleepController];
         [self configureSleepWakeTimer];
         [self configureEventHandler];
         [self configureUserNotificationCenter];
@@ -74,6 +82,11 @@
                      object:nil];
         
         self.lastAllowDisplaySleep = [NSUserDefaults.standardUserDefaults kya_shouldAllowDisplaySleep];
+        self.lastKeepAwakeWithLidClosed = [NSUserDefaults.standardUserDefaults kya_isKeepAwakeWithLidClosedEnabled];
+        [center addObserver:self
+                   selector:@selector(applicationWillTerminate:)
+                       name:NSApplicationWillTerminateNotification
+                     object:nil];
         [center addObserver:self
                    selector:@selector(userDefaultsDidChange:)
                        name:NSUserDefaultsDidChangeNotification
@@ -91,8 +104,16 @@
     [center removeObserver:self name:NSApplicationDidChangeScreenParametersNotification object:nil];
     [center removeObserver:self name:kKYABatteryCapacityThresholdDidChangeNotification object:nil];
     [center removeObserver:self name:NSUserDefaultsDidChangeNotification object:nil];
+    [center removeObserver:self name:NSApplicationWillTerminateNotification object:nil];
     
     [self unregisterFromWorkspaceSessionNotifications];
+}
+
+- (void)applicationWillTerminate:(NSNotification *)notification
+{
+    // The timer's deactivation callback doesn't run during termination,
+    // so restore the sleep setting here and wait for it.
+    [self.lidSleepController restoreSynchronouslyWithTimeout:10.0];
 }
 
 #pragma mark - Main Menu
@@ -352,13 +373,199 @@
 
 - (void)applyChangedUserDefaultsIfNeeded
 {
-    BOOL allowDisplaySleep = [NSUserDefaults.standardUserDefaults kya_shouldAllowDisplaySleep];
-    if(allowDisplaySleep == self.lastAllowDisplaySleep) { return; }
-    self.lastAllowDisplaySleep = allowDisplaySleep;
+    Auto defaults = NSUserDefaults.standardUserDefaults;
     
-    // Apply the display sleep setting to a running activation right away,
-    // instead of only on the next activation.
-    [self.sleepWakeTimer refreshCaffeinateTask];
+    BOOL allowDisplaySleep = [defaults kya_shouldAllowDisplaySleep];
+    if(allowDisplaySleep != self.lastAllowDisplaySleep)
+    {
+        self.lastAllowDisplaySleep = allowDisplaySleep;
+        
+        // Apply the display sleep setting to a running activation right away,
+        // instead of only on the next activation.
+        [self.sleepWakeTimer refreshCaffeinateTask];
+    }
+    
+    BOOL keepAwakeWithLidClosed = [defaults kya_isKeepAwakeWithLidClosedEnabled];
+    if(keepAwakeWithLidClosed != self.lastKeepAwakeWithLidClosed && self.isSettingUpLidSleep == NO)
+    {
+        self.lastKeepAwakeWithLidClosed = keepAwakeWithLidClosed;
+        if(keepAwakeWithLidClosed)
+        {
+            [self setUpKeepAwakeWithLidClosed];
+        }
+        else
+        {
+            [self.lidSleepController activationDidEnd];
+        }
+    }
+}
+
+#pragma mark - Keep Awake with the Lid Closed
+
+- (void)configureLidSleepController
+{
+    self.lidSleepRunner = [KYALidSleepSystemCommandRunner new];
+    self.lidSleepController = [[KYALidSleepController alloc] initWithCommandRunner:self.lidSleepRunner
+                                                                          defaults:NSUserDefaults.standardUserDefaults];
+    [self.lidSleepController recoverIfNeeded];
+}
+
+- (void)setUpKeepAwakeWithLidClosed
+{
+    self.settingUpLidSleep = YES;
+    
+    Auto defaults = NSUserDefaults.standardUserDefaults;
+    BOOL ready = [self runLidSleepSetup];
+    if(ready == NO)
+    {
+        [defaults removeObjectForKey:KYAUserDefaultsKeyKeepAwakeWithLidClosed];
+        [defaults synchronize];
+    }
+    self.lastKeepAwakeWithLidClosed = [defaults kya_isKeepAwakeWithLidClosedEnabled];
+    self.settingUpLidSleep = NO;
+    
+    if(self.lastKeepAwakeWithLidClosed && [self.sleepWakeTimer isScheduled])
+    {
+        [self.lidSleepController activationDidBegin];
+    }
+    else
+    {
+        // Undo anything that may have been turned on while setup was open.
+        [self.lidSleepController activationDidEnd];
+    }
+}
+
+/// Shows the warning, installs the helper and permission if needed.
+/// Returns YES when lid-closed mode is ready to use.
+- (BOOL)runLidSleepSetup
+{
+    if(@available(macOS 14.0, *))
+    {
+        [NSApplication.sharedApplication activate];
+    }
+    else
+    {
+        [NSApplication.sharedApplication activateIgnoringOtherApps:YES];
+    }
+    
+    Auto warning = [NSAlert new];
+    warning.alertStyle = NSAlertStyleWarning;
+    warning.messageText = KYA_L10N_LID_WARNING_TITLE;
+    warning.informativeText = KYA_L10N_LID_WARNING_MESSAGE;
+    [warning addButtonWithTitle:KYA_L10N_LID_TURN_ON];
+    [warning addButtonWithTitle:KYA_L10N_CANCEL];
+    if([warning runModal] != NSAlertFirstButtonReturn) { return NO; }
+    
+    Auto runner = self.lidSleepRunner;
+    KYALidSleepHelperState state = [runner helperState];
+    
+    if(state == KYALidSleepHelperStateNotInstalled || state == KYALidSleepHelperStateOutdated)
+    {
+        if([self installLidSleepHelperScript] == NO) { return NO; }
+        state = [runner helperState];
+    }
+    
+    if(state == KYALidSleepHelperStateNeedsPermission)
+    {
+        Auto permission = [NSAlert new];
+        permission.messageText = KYA_L10N_LID_PERMISSION_TITLE;
+        permission.informativeText = KYA_L10N_LID_PERMISSION_MESSAGE;
+        [permission addButtonWithTitle:KYA_L10N_LID_HELPER_CONTINUE];
+        [permission addButtonWithTitle:KYA_L10N_CANCEL];
+        if([permission runModal] != NSAlertFirstButtonReturn) { return NO; }
+        
+        [runner installPermission];
+        state = [runner helperState];
+    }
+    
+    if(state != KYALidSleepHelperStateReady)
+    {
+        [self showLidSleepSetupErrorWithMessage:KYA_L10N_LID_SETUP_FAILED_MESSAGE];
+        return NO;
+    }
+    if([runner currentSleepDisabledState] == KYASleepDisabledStateUnknown)
+    {
+        [self showLidSleepSetupErrorWithMessage:KYA_L10N_LID_SETUP_FAILED_UNREADABLE];
+        return NO;
+    }
+    return YES;
+}
+
+/// Asks the user to save the helper script into the app's Application
+/// Scripts folder. The sandbox only allows writing there through a save panel.
+- (BOOL)installLidSleepHelperScript
+{
+    Auto scriptsDirectory = KYALidSleepSystemCommandRunner.scriptsDirectoryURL;
+    if(scriptsDirectory == nil)
+    {
+        [self showLidSleepSetupErrorWithMessage:KYA_L10N_LID_SETUP_FAILED_MESSAGE];
+        return NO;
+    }
+    
+    Auto intro = [NSAlert new];
+    intro.messageText = KYA_L10N_LID_HELPER_TITLE;
+    intro.informativeText = KYA_L10N_LID_HELPER_MESSAGE;
+    [intro addButtonWithTitle:KYA_L10N_LID_HELPER_CONTINUE];
+    [intro addButtonWithTitle:KYA_L10N_LID_HELPER_COPY_COMMAND];
+    [intro addButtonWithTitle:KYA_L10N_CANCEL];
+    NSModalResponse response = [intro runModal];
+    
+    if(response == NSAlertSecondButtonReturn)
+    {
+        Auto pasteboard = NSPasteboard.generalPasteboard;
+        [pasteboard clearContents];
+        [pasteboard setString:KYALidSleepSystemCommandRunner.terminalInstallCommand forType:NSPasteboardTypeString];
+        
+        Auto copied = [NSAlert new];
+        copied.messageText = KYA_L10N_LID_HELPER_COPIED_TITLE;
+        copied.informativeText = KYA_L10N_LID_HELPER_COPIED_MESSAGE;
+        [copied addButtonWithTitle:KYA_L10N_OK];
+        [copied runModal];
+        return NO;
+    }
+    if(response != NSAlertFirstButtonReturn) { return NO; }
+    
+    Auto panel = [NSSavePanel savePanel];
+    panel.directoryURL = scriptsDirectory;
+    panel.nameFieldStringValue = KYALidSleepHelperScriptName;
+    panel.message = KYA_L10N_LID_HELPER_SAVE_PANEL_MESSAGE;
+    panel.canCreateDirectories = NO;
+    panel.showsTagField = NO;
+    if([panel runModal] != NSModalResponseOK || panel.URL == nil) { return NO; }
+    
+    Auto url = panel.URL;
+    Auto chosenFolder = url.URLByDeletingLastPathComponent.URLByResolvingSymlinksInPath.path;
+    Auto expectedFolder = scriptsDirectory.URLByResolvingSymlinksInPath.path;
+    if([chosenFolder isEqualToString:expectedFolder] == NO
+       || [url.lastPathComponent isEqualToString:KYALidSleepHelperScriptName] == NO)
+    {
+        [self showLidSleepSetupErrorWithMessage:KYA_L10N_LID_SETUP_FAILED_WRONG_FOLDER];
+        return NO;
+    }
+    
+    Auto fileManager = NSFileManager.defaultManager;
+    Auto contents = [KYALidSleepSystemCommandRunner.helperScriptContents dataUsingEncoding:NSUTF8StringEncoding];
+    Auto attributes = @{ NSFilePosixPermissions: @(0755) };
+    BOOL written = [fileManager createFileAtPath:url.path contents:contents attributes:attributes];
+    // Also covers replacing an older helper, whose permissions createFile doesn't change.
+    [fileManager setAttributes:attributes ofItemAtPath:url.path error:nil];
+    
+    if(written == NO || [fileManager isExecutableFileAtPath:url.path] == NO)
+    {
+        [self showLidSleepSetupErrorWithMessage:KYA_L10N_LID_SETUP_FAILED_MESSAGE];
+        return NO;
+    }
+    return YES;
+}
+
+- (void)showLidSleepSetupErrorWithMessage:(NSString *)message
+{
+    Auto alert = [NSAlert new];
+    alert.alertStyle = NSAlertStyleWarning;
+    alert.messageText = KYA_L10N_LID_SETUP_FAILED_TITLE;
+    alert.informativeText = message;
+    [alert addButtonWithTitle:KYA_L10N_OK];
+    [alert runModal];
 }
 
 #pragma mark - Workspace Session Handling
@@ -685,6 +892,11 @@ static KYAActivationDuration * _Nullable KYAClockTimeDurationFromURLTimeString(N
     self.statusItemController.appearance = KYAStatusItemAppearanceActive;
     
     [self enableDevicePowerMonitoring];
+    // While setup is open, it decides at the end.
+    if(self.isSettingUpLidSleep == NO)
+    {
+        [self.lidSleepController activationDidBegin];
+    }
 }
 
 - (void)sleepWakeTimerDidDeactivate:(KYASleepWakeTimer *)sleepWakeTimer
@@ -693,6 +905,7 @@ static KYAActivationDuration * _Nullable KYAClockTimeDurationFromURLTimeString(N
     self.statusItemController.appearance = KYAStatusItemAppearanceInactive;
     
     [self disableDevicePowerMonitoring];
+    [self.lidSleepController activationDidEnd];
 }
 
 @end
