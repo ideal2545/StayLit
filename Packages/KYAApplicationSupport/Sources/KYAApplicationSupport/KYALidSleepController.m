@@ -13,10 +13,20 @@
 
 #pragma mark - Controller
 
+/// Why the setting is being restored.
+typedef NS_ENUM(NSInteger, KYALidSleepRestoreReason) {
+    KYALidSleepRestoreReasonActivationEnded,
+    KYALidSleepRestoreReasonPreviousRun,
+    KYALidSleepRestoreReasonTermination,
+};
+
 @interface KYALidSleepController ()
 @property (nonatomic) id<KYALidSleepCommandRunner> runner;
 @property (nonatomic) NSUserDefaults *defaults;
 @property (nonatomic) dispatch_queue_t queue;
+// Queue only: YES while an activation relies on the setting being on.
+@property (nonatomic, getter=isWatching) BOOL watching;
+@property (nonatomic, nullable) dispatch_source_t watchTimer;
 @end
 
 @implementation KYALidSleepController
@@ -34,8 +44,17 @@
         // All commands run in order on one serial queue, so an `enable`
         // can never overtake the `disable` that follows it.
         self.queue = dispatch_queue_create("com.principia29.StayLit.LidSleep", DISPATCH_QUEUE_SERIAL);
+        self.watchInterval = 10.0;
     }
     return self;
+}
+
+- (void)dealloc
+{
+    if(_watchTimer != nil)
+    {
+        dispatch_source_cancel(_watchTimer);
+    }
 }
 
 - (void)recoverIfNeeded
@@ -44,7 +63,7 @@
         if(self.defaults.kya_isLidSleepDisabledByApp)
         {
             os_log(KYAApplicationSupportLog(), "Lid sleep: restoring sleep left disabled by a previous run");
-            [self restoreOnQueue];
+            [self restoreOnQueueWithReason:KYALidSleepRestoreReasonPreviousRun];
         }
     });
 }
@@ -61,15 +80,18 @@
 - (void)activationDidEnd
 {
     dispatch_async(self.queue, ^{
-        [self restoreOnQueue];
+        [self stopWatchingOnQueue];
+        [self restoreOnQueueWithReason:KYALidSleepRestoreReasonActivationEnded];
     });
 }
 
-- (void)restoreSynchronouslyWithTimeout:(NSTimeInterval)timeout
+- (BOOL)restoreSynchronouslyWithTimeout:(NSTimeInterval)timeout
 {
     Auto semaphore = dispatch_semaphore_create(0);
+    __block BOOL restored = NO;
     dispatch_async(self.queue, ^{
-        [self restoreOnQueue];
+        [self stopWatchingOnQueue];
+        restored = [self restoreOnQueueWithReason:KYALidSleepRestoreReasonTermination];
         dispatch_semaphore_signal(semaphore);
     });
 
@@ -77,7 +99,29 @@
     if(dispatch_semaphore_wait(semaphore, deadline) != 0)
     {
         os_log_error(KYAApplicationSupportLog(), "Lid sleep: timed out restoring sleep; it will be restored on next launch");
+        return NO;
     }
+    return restored;
+}
+
+- (void)keepSleepDisabledWithCompletion:(void (^)(BOOL))completion
+{
+    dispatch_async(self.queue, ^{
+        BOOL success = [self keepSleepDisabledOnQueue];
+        if(completion != nil)
+        {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                completion(success);
+            });
+        }
+    });
+}
+
+- (void)checkSettingNow
+{
+    dispatch_async(self.queue, ^{
+        [self checkSettingOnQueue];
+    });
 }
 
 - (void)waitUntilIdle
@@ -90,14 +134,20 @@
 - (void)enableOnQueue
 {
     // We already turned it on, nothing to do.
-    if(self.defaults.kya_isLidSleepDisabledByApp) { return; }
+    if(self.defaults.kya_isLidSleepDisabledByApp)
+    {
+        [self startWatchingOnQueue];
+        return;
+    }
 
     KYASleepDisabledState state = [self.runner currentSleepDisabledState];
     if(state == KYASleepDisabledStateOn)
     {
         // Sleep is already disabled by the user (or another app).
-        // Leave it alone, and never turn it off later.
+        // Leave it alone, and never turn it off later. Still watch it,
+        // so the user hears about it if that gets turned off.
         os_log(KYAApplicationSupportLog(), "Lid sleep: sleep is already disabled, leaving it as it is");
+        [self startWatchingOnQueue];
         return;
     }
     if(state != KYASleepDisabledStateOff)
@@ -112,11 +162,13 @@
     if([self.runner runHelperCommand:@"enable"])
     {
         os_log(KYAApplicationSupportLog(), "Lid sleep: disabled sleep for this activation");
+        [self startWatchingOnQueue];
         return;
     }
     
     // If it got turned on anyway, keep ownership so it is turned off later.
-    if([self.runner currentSleepDisabledState] == KYASleepDisabledStateOff)
+    KYASleepDisabledState stateAfterFailure = [self.runner currentSleepDisabledState];
+    if(stateAfterFailure == KYASleepDisabledStateOff)
     {
         os_log_error(KYAApplicationSupportLog(), "Lid sleep: could not disable sleep");
         self.defaults.kya_lidSleepDisabledByApp = NO;
@@ -124,37 +176,152 @@
     else
     {
         os_log_error(KYAApplicationSupportLog(), "Lid sleep: enable failed with an unclear result, keeping ownership");
+        if(stateAfterFailure == KYASleepDisabledStateOn)
+        {
+            [self startWatchingOnQueue];
+        }
     }
 }
 
-- (void)restoreOnQueue
+/// Returns YES if it turned sleep back on.
+- (BOOL)restoreOnQueueWithReason:(KYALidSleepRestoreReason)reason
 {
     // Only undo what we did ourselves.
-    if(self.defaults.kya_isLidSleepDisabledByApp == NO) { return; }
+    if(self.defaults.kya_isLidSleepDisabledByApp == NO) { return NO; }
     
     KYASleepDisabledState state = [self.runner currentSleepDisabledState];
     if(state == KYASleepDisabledStateOff)
     {
         // Already restored (e.g. by a run that crashed before clearing the flag).
         self.defaults.kya_lidSleepDisabledByApp = NO;
-        return;
+        return NO;
     }
     if(state != KYASleepDisabledStateOn)
     {
         // Can't tell; change nothing and try again later.
         os_log_error(KYAApplicationSupportLog(), "Lid sleep: could not read the current sleep setting, not restoring yet");
-        return;
+        return NO;
     }
     
     if([self.runner runHelperCommand:@"disable"])
     {
         os_log(KYAApplicationSupportLog(), "Lid sleep: restored sleep");
         self.defaults.kya_lidSleepDisabledByApp = NO;
+        [self notifyDelegateOfRestoreWithReason:reason];
+        return YES;
     }
     else
     {
         // Keep the flag, so the next launch tries again.
         os_log_error(KYAApplicationSupportLog(), "Lid sleep: could not restore sleep");
+        return NO;
+    }
+}
+
+- (void)notifyDelegateOfRestoreWithReason:(KYALidSleepRestoreReason)reason
+{
+    Auto delegate = self.delegate;
+    switch(reason)
+    {
+        case KYALidSleepRestoreReasonActivationEnded:
+            if([delegate respondsToSelector:@selector(lidSleepControllerDidRestoreSleep:)])
+            {
+                [delegate lidSleepControllerDidRestoreSleep:self];
+            }
+            break;
+        case KYALidSleepRestoreReasonPreviousRun:
+            if([delegate respondsToSelector:@selector(lidSleepControllerDidRestoreSleepLeftByPreviousRun:)])
+            {
+                [delegate lidSleepControllerDidRestoreSleepLeftByPreviousRun:self];
+            }
+            break;
+        case KYALidSleepRestoreReasonTermination:
+            // The app is quitting; there's nobody left to tell.
+            break;
+    }
+}
+
+- (BOOL)keepSleepDisabledOnQueue
+{
+    KYASleepDisabledState state = [self.runner currentSleepDisabledState];
+    if(state == KYASleepDisabledStateOn)
+    {
+        // Hand it over to the user: StayLit never turns it off again.
+        self.defaults.kya_lidSleepDisabledByApp = NO;
+        os_log(KYAApplicationSupportLog(), "Lid sleep: leaving sleep disabled for the user");
+        return YES;
+    }
+    if(state != KYASleepDisabledStateOff)
+    {
+        os_log_error(KYAApplicationSupportLog(), "Lid sleep: could not read the current sleep setting, changing nothing");
+        return NO;
+    }
+
+    // Turned on for the user, so StayLit doesn't own it.
+    BOOL success = [self.runner runHelperCommand:@"enable"];
+    if(success == NO)
+    {
+        success = [self.runner currentSleepDisabledState] == KYASleepDisabledStateOn;
+    }
+    if(success)
+    {
+        // Something else may have turned it off while StayLit still owned
+        // it; either way it is the user's now.
+        self.defaults.kya_lidSleepDisabledByApp = NO;
+        os_log(KYAApplicationSupportLog(), "Lid sleep: disabled sleep for the user");
+    }
+    else
+    {
+        os_log_error(KYAApplicationSupportLog(), "Lid sleep: could not disable sleep for the user");
+    }
+    return success;
+}
+
+#pragma mark - Watching the Setting
+
+- (void)startWatchingOnQueue
+{
+    self.watching = YES;
+    if(self.watchTimer != nil || self.watchInterval <= 0) { return; }
+
+    Auto timer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, self.queue);
+    Auto interval = (uint64_t)(self.watchInterval * (NSTimeInterval)NSEC_PER_SEC);
+    dispatch_source_set_timer(timer, dispatch_time(DISPATCH_TIME_NOW, (int64_t)interval), interval, interval / 5);
+    AutoWeak weakSelf = self;
+    dispatch_source_set_event_handler(timer, ^{
+        [weakSelf checkSettingOnQueue];
+    });
+    self.watchTimer = timer;
+    dispatch_resume(timer);
+}
+
+- (void)stopWatchingOnQueue
+{
+    self.watching = NO;
+    if(self.watchTimer != nil)
+    {
+        dispatch_source_cancel(self.watchTimer);
+        self.watchTimer = nil;
+    }
+}
+
+- (void)checkSettingOnQueue
+{
+    if(self.isWatching == NO) { return; }
+
+    // StayLit's own changes run on this queue too, so a change seen
+    // here was made by something else.
+    if([self.runner currentSleepDisabledState] != KYASleepDisabledStateOff) { return; }
+
+    os_log(KYAApplicationSupportLog(), "Lid sleep: something else turned sleep back on, leaving it that way");
+    [self stopWatchingOnQueue];
+    // Nothing left to restore. Never turn it back on behind the user's back.
+    self.defaults.kya_lidSleepDisabledByApp = NO;
+
+    Auto delegate = self.delegate;
+    if([delegate respondsToSelector:@selector(lidSleepControllerSleepSettingWasTurnedOffElsewhere:)])
+    {
+        [delegate lidSleepControllerSleepSettingWasTurnedOffElsewhere:self];
     }
 }
 

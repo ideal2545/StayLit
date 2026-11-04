@@ -9,9 +9,10 @@
 #import <UserNotifications/UserNotifications.h>
 #import <KYACommon/KYACommon.h>
 
-@interface KYAUserNotificationCenter ()
+@interface KYAUserNotificationCenter () <UNUserNotificationCenterDelegate>
 @property (nonatomic) UNUserNotificationCenter *center;
 @property (nonatomic) os_log_t log;
+@property (nonatomic) NSMutableDictionary<NSString *, UNNotificationCategory *> *categories;
 @end
 
 @interface KYAUserNotification ()
@@ -43,6 +44,10 @@
     {
         self.center = center;
         self.log = KYALogCreateWithCategory("UserNotifications");
+        self.categories = [NSMutableDictionary new];
+        // Needed to hear about action buttons. Notifications still
+        // aren't shown while the app is frontmost, as before.
+        center.delegate = self;
     }
     return self;
 }
@@ -121,6 +126,46 @@
     [self.center removeAllDeliveredNotifications];
 }
 
+#pragma mark - Actions
+
+- (void)registerCategoryWithIdentifier:(NSString *)categoryIdentifier
+                      actionIdentifier:(NSString *)actionIdentifier
+                           actionTitle:(NSString *)actionTitle
+{
+    NSParameterAssert(categoryIdentifier);
+    NSParameterAssert(actionIdentifier);
+    NSParameterAssert(actionTitle);
+
+    Auto action = [UNNotificationAction actionWithIdentifier:actionIdentifier
+                                                       title:actionTitle
+                                                     options:UNNotificationActionOptionNone];
+    Auto category = [UNNotificationCategory categoryWithIdentifier:categoryIdentifier
+                                                           actions:@[action]
+                                                 intentIdentifiers:@[]
+                                                           options:UNNotificationCategoryOptionNone];
+    self.categories[categoryIdentifier] = category;
+    [self.center setNotificationCategories:[NSSet setWithArray:self.categories.allValues]];
+}
+
+- (void)userNotificationCenter:(UNUserNotificationCenter *)center
+didReceiveNotificationResponse:(UNNotificationResponse *)response
+         withCompletionHandler:(void (^)(void))completionHandler
+{
+    Auto actionIdentifier = response.actionIdentifier;
+    Auto userInfo = response.notification.request.content.userInfo ?: @{};
+    BOOL isButton = [actionIdentifier isEqualToString:UNNotificationDefaultActionIdentifier] == NO
+        && [actionIdentifier isEqualToString:UNNotificationDismissActionIdentifier] == NO;
+
+    dispatch_async(dispatch_get_main_queue(), ^{
+        Auto handler = self.actionHandler;
+        if(isButton && handler != nil)
+        {
+            handler(actionIdentifier, userInfo);
+        }
+        completionHandler();
+    });
+}
+
 - (void)postNotification:(__kindof KYAUserNotification *)notification
 {
     NSParameterAssert(notification);
@@ -166,6 +211,10 @@
     content.title = self.title;
     content.subtitle = self.subtitle;
     content.body = self.bodyText;
+    if(self.categoryIdentifier != nil)
+    {
+        content.categoryIdentifier = self.categoryIdentifier;
+    }
     if(self.userInfo != nil)
     {
         content.userInfo = self.userInfo;

@@ -15,11 +15,16 @@
 #import "KYAActivationUserNotification.h"
 #import "KYAActivateUntilDateWindowController.h"
 
+// Lid-closed notices
+static NSString * const KYALidSleepNotificationIdentifier = @"KYALidSleepIdentifier";
+static NSString * const KYALidSleepRestoredCategoryIdentifier = @"KYALidSleepRestored";
+static NSString * const KYALidSleepLeaveDisabledActionIdentifier = @"KYALidSleepLeaveDisabled";
+
 // Deprecated!
 #define KYA_MINUTES(m) (m * 60.0f)
 #define KYA_HOURS(h) (h * 3600.0f)
 
-@interface KYAAppController () <KYAStatusItemControllerDataSource, KYAStatusItemControllerDelegate, KYAActivationDurationsMenuControllerDelegate, KYASleepWakeTimerDelegate>
+@interface KYAAppController () <KYAStatusItemControllerDataSource, KYAStatusItemControllerDelegate, KYAActivationDurationsMenuControllerDelegate, KYASleepWakeTimerDelegate, KYALidSleepControllerDelegate>
 @property (nonatomic, readwrite) KYASleepWakeTimer *sleepWakeTimer;
 @property (nonatomic, readwrite) KYAStatusItemController *statusItemController;
 @property (nonatomic) KYAActivationDurationsMenuController *menuController;
@@ -37,6 +42,9 @@
 @property (nonatomic) KYALidSleepController *lidSleepController;
 @property (nonatomic) BOOL lastKeepAwakeWithLidClosed;
 @property (nonatomic, getter=isSettingUpLidSleep) BOOL settingUpLidSleep;
+// YES when the last deactivation posted its notification, so turning
+// sleep back on can add to it.
+@property (nonatomic) BOOL postedDeactivationNotification;
 
 // Keyboard shortcut
 @property (nonatomic, nullable) NSDictionary *lastToggleHotKey;
@@ -231,16 +239,31 @@
     Auto timerCompletion = ^(BOOL cancelled) {
         // Post deactivation notification, unless the user turned it off
         // and only wants notifications for automatic changes.
-        BOOL quiet = cancelled && weakSelf.deactivationIsUserInitiated
+        Auto strongSelf = weakSelf;
+        BOOL quiet = cancelled && strongSelf.deactivationIsUserInitiated
             && [defaults kya_areManualChangeNotificationsDisabled];
-        if(quiet == NO)
+        BOOL quit = cancelled == NO && [defaults kya_isQuitOnTimerExpirationEnabled];
+        strongSelf.postedDeactivationNotification = (quiet == NO);
+
+        // When quitting, there's no time to update the notification later,
+        // so turn sleep back on first and say so in this notification.
+        BOOL restoredSleep = quit && [strongSelf.lidSleepController restoreSynchronouslyWithTimeout:10.0];
+        if(restoredSleep)
+        {
+            strongSelf.postedDeactivationNotification = NO;
+            [strongSelf postLidSleepNotificationWithIdentifier:KYAActivationUserNotificationIdentifier
+                                                         title:KYA_L10N_ALLOWING_SLEEP_TITLE
+                                                      bodyText:KYA_L10N_LID_RESTORED_BODY_TEXT
+                                              canLeaveDisabled:YES];
+        }
+        else if(quiet == NO)
         {
             Auto notification = [[KYAActivationUserNotification alloc] initWithFireDate:nil activating:NO];
             [KYAUserNotificationCenter.sharedCenter postNotification:notification];
         }
 
         // Quit on timer expiration
-        if(cancelled == NO && [defaults kya_isQuitOnTimerExpirationEnabled])
+        if(quit)
         {
             [NSApplication.sharedApplication terminate:nil];
         }
@@ -302,6 +325,17 @@
     Auto center = KYAUserNotificationCenter.sharedCenter;
     [center requestAuthorizationIfUndetermined];
     [center clearAllDeliveredNotifications];
+
+    [center registerCategoryWithIdentifier:KYALidSleepRestoredCategoryIdentifier
+                          actionIdentifier:KYALidSleepLeaveDisabledActionIdentifier
+                               actionTitle:KYA_L10N_LID_LEAVE_SLEEP_DISABLED];
+    AutoWeak weakSelf = self;
+    center.actionHandler = ^(NSString *actionIdentifier, NSDictionary *userInfo) {
+        if([actionIdentifier isEqualToString:KYALidSleepLeaveDisabledActionIdentifier])
+        {
+            [weakSelf leaveSleepDisabled];
+        }
+    };
 }
 
 #pragma mark - Device Power Monitoring
@@ -480,6 +514,7 @@
     self.lidSleepRunner = [KYALidSleepSystemCommandRunner new];
     self.lidSleepController = [[KYALidSleepController alloc] initWithCommandRunner:self.lidSleepRunner
                                                                           defaults:NSUserDefaults.standardUserDefaults];
+    self.lidSleepController.delegate = self;
     [self.lidSleepController recoverIfNeeded];
 }
 
@@ -496,6 +531,15 @@
     }
     self.lastKeepAwakeWithLidClosed = [defaults kya_isKeepAwakeWithLidClosedEnabled];
     self.settingUpLidSleep = NO;
+    
+    if(ready && [self.lidSleepRunner currentSleepDisabledState] == KYASleepDisabledStateOn)
+    {
+        // StayLit won't manage a setting that is already on; say so now,
+        // instead of leaving the user to wonder why it stays on.
+        [self showLidSleepAlertWithTitle:KYA_L10N_LID_ALREADY_DISABLED_TITLE
+                                 message:KYA_L10N_LID_ALREADY_DISABLED_MESSAGE
+                                   style:NSAlertStyleInformational];
+    }
     
     if(self.lastKeepAwakeWithLidClosed && [self.sleepWakeTimer isScheduled])
     {
@@ -633,12 +677,114 @@
 
 - (void)showLidSleepSetupErrorWithMessage:(NSString *)message
 {
+    [self showLidSleepAlertWithTitle:KYA_L10N_LID_SETUP_FAILED_TITLE
+                             message:message
+                               style:NSAlertStyleWarning];
+}
+
+- (void)showLidSleepAlertWithTitle:(NSString *)title message:(NSString *)message style:(NSAlertStyle)style
+{
     Auto alert = [NSAlert new];
-    alert.alertStyle = NSAlertStyleWarning;
-    alert.messageText = KYA_L10N_LID_SETUP_FAILED_TITLE;
+    alert.alertStyle = style;
+    alert.messageText = title;
     alert.informativeText = message;
     [alert addButtonWithTitle:KYA_L10N_OK];
     [alert runModal];
+}
+
+#pragma mark - Lid Closed Notices
+
+- (void)postLidSleepNotificationWithIdentifier:(NSString *)identifier
+                                         title:(NSString *)title
+                                      bodyText:(NSString *)bodyText
+                              canLeaveDisabled:(BOOL)canLeaveDisabled
+{
+    Auto notification = [KYAUserNotification new];
+    notification.identifier = identifier;
+    [notification setLocalizedTitleWithKey:title arguments:nil];
+    [notification setLocalizedBodyTextWithKey:bodyText arguments:nil];
+    if(canLeaveDisabled)
+    {
+        notification.categoryIdentifier = KYALidSleepRestoredCategoryIdentifier;
+    }
+    [KYAUserNotificationCenter.sharedCenter postNotification:notification];
+}
+
+/// The user clicked Leave Sleep Disabled.
+- (void)leaveSleepDisabled
+{
+    AutoWeak weakSelf = self;
+    [self.lidSleepController keepSleepDisabledWithCompletion:^(BOOL success) {
+        Auto strongSelf = weakSelf;
+        if(@available(macOS 14.0, *))
+        {
+            [NSApplication.sharedApplication activate];
+        }
+        else
+        {
+            [NSApplication.sharedApplication activateIgnoringOtherApps:YES];
+        }
+        if(success)
+        {
+            [strongSelf showLidSleepAlertWithTitle:KYA_L10N_LID_KEPT_DISABLED_TITLE
+                                           message:KYA_L10N_LID_KEPT_DISABLED_MESSAGE
+                                             style:NSAlertStyleWarning];
+        }
+        else
+        {
+            [strongSelf showLidSleepAlertWithTitle:KYA_L10N_LID_KEEP_DISABLED_FAILED_TITLE
+                                           message:KYA_L10N_LID_KEEP_DISABLED_FAILED_MESSAGE
+                                             style:NSAlertStyleWarning];
+        }
+    }];
+}
+
+#pragma mark - KYALidSleepControllerDelegate
+
+// These arrive on the controller's queue.
+
+- (void)lidSleepControllerDidRestoreSleep:(KYALidSleepController *)controller
+{
+    AutoWeak weakSelf = self;
+    dispatch_async(dispatch_get_main_queue(), ^{
+        Auto strongSelf = weakSelf;
+        // Only add to a deactivation notification that was shown. When the
+        // user switched StayLit off and wants no notification, or the
+        // option was switched off during an activation, stay quiet.
+        if(strongSelf == nil || strongSelf.postedDeactivationNotification == NO
+           || [strongSelf.sleepWakeTimer isScheduled])
+        {
+            return;
+        }
+        strongSelf.postedDeactivationNotification = NO;
+        // Replaces the "Allowing Sleep" notification.
+        [strongSelf postLidSleepNotificationWithIdentifier:KYAActivationUserNotificationIdentifier
+                                                     title:KYA_L10N_ALLOWING_SLEEP_TITLE
+                                                  bodyText:KYA_L10N_LID_RESTORED_BODY_TEXT
+                                          canLeaveDisabled:YES];
+    });
+}
+
+- (void)lidSleepControllerDidRestoreSleepLeftByPreviousRun:(KYALidSleepController *)controller
+{
+    AutoWeak weakSelf = self;
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [weakSelf postLidSleepNotificationWithIdentifier:KYALidSleepNotificationIdentifier
+                                                   title:KYA_L10N_LID_RESTORED_PREVIOUS_RUN_TITLE
+                                                bodyText:KYA_L10N_LID_RESTORED_PREVIOUS_RUN_BODY_TEXT
+                                        canLeaveDisabled:YES];
+    });
+}
+
+- (void)lidSleepControllerSleepSettingWasTurnedOffElsewhere:(KYALidSleepController *)controller
+{
+    AutoWeak weakSelf = self;
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [weakSelf postLidSleepNotificationWithIdentifier:KYALidSleepNotificationIdentifier
+                                                   title:KYA_L10N_LID_TURNED_OFF_ELSEWHERE_TITLE
+                                                bodyText:KYA_L10N_LID_TURNED_OFF_ELSEWHERE_BODY_TEXT
+                                        canLeaveDisabled:NO];
+    });
 }
 
 #pragma mark - Workspace Session Handling
@@ -1067,6 +1213,7 @@ static KYAActivationDuration * _Nullable KYAClockTimeDurationFromURLTimeString(N
 {
     // Update the status item
     self.statusItemController.appearance = KYAStatusItemAppearanceActive;
+    self.postedDeactivationNotification = NO;
     
     [self enableDevicePowerMonitoring];
     // While setup is open, it decides at the end.

@@ -82,6 +82,21 @@
 #define KYA_L10N_LID_SETUP_FAILED_WRONG_FOLDER NSLocalizedString(@"The helper has to be saved in the folder StayLit suggests, with its suggested name. Please try again.", @"Lid closed helper wrong folder message")
 #define KYA_L10N_LID_SETUP_FAILED_UNREADABLE NSLocalizedString(@"StayLit couldn't read the current sleep setting on this Mac, so it can't safely change it. The option was turned off.", @"Lid closed setup unreadable message")
 #define KYA_L10N_LID_SETUP_FAILED_MESSAGE NSLocalizedString(@"StayLit couldn't get permission to change the sleep setting, so the option was turned off.", @"Lid closed setup failed message")
+
+#pragma mark - Lid Closed Notices
+
+#define KYA_L10N_LID_RESTORED_BODY_TEXT NSLocalizedString(@"Your Mac will go to sleep again when unused or when you close the lid. If you had disabled sleep yourself, click Leave Sleep Disabled.", @"Lid closed restored notification body")
+#define KYA_L10N_LID_RESTORED_PREVIOUS_RUN_TITLE NSLocalizedString(@"StayLit Turned Sleep Back On", @"StayLit Turned Sleep Back On")
+#define KYA_L10N_LID_RESTORED_PREVIOUS_RUN_BODY_TEXT NSLocalizedString(@"StayLit quit unexpectedly while it kept your Mac awake with the lid closed, so it turned sleep back on. If you had disabled sleep yourself, click Leave Sleep Disabled.", @"Lid closed restored after a previous run notification body")
+#define KYA_L10N_LID_LEAVE_SLEEP_DISABLED NSLocalizedString(@"Leave Sleep Disabled", @"Leave Sleep Disabled")
+#define KYA_L10N_LID_TURNED_OFF_ELSEWHERE_TITLE NSLocalizedString(@"Your Mac Will Sleep When the Lid Closes", @"Your Mac Will Sleep When the Lid Closes")
+#define KYA_L10N_LID_TURNED_OFF_ELSEWHERE_BODY_TEXT NSLocalizedString(@"Something else turned off the macOS \"disablesleep\" setting, and StayLit left it off. To keep your Mac awake with the lid closed again, turn StayLit off and on.", @"Lid closed setting turned off elsewhere notification body")
+#define KYA_L10N_LID_KEPT_DISABLED_TITLE NSLocalizedString(@"Sleep stays disabled", @"Sleep stays disabled")
+#define KYA_L10N_LID_KEPT_DISABLED_MESSAGE NSLocalizedString(@"Your Mac won't sleep, even with the lid closed, until you turn this off. StayLit won't change it again.\n\nTo turn sleep back on, run \"sudo pmset -a disablesleep 0\" in Terminal.", @"Lid closed sleep kept disabled message")
+#define KYA_L10N_LID_KEEP_DISABLED_FAILED_TITLE NSLocalizedString(@"Couldn't leave sleep disabled", @"Couldn't leave sleep disabled")
+#define KYA_L10N_LID_KEEP_DISABLED_FAILED_MESSAGE NSLocalizedString(@"StayLit couldn't change the sleep setting. To disable sleep yourself, run \"sudo pmset -a disablesleep 1\" in Terminal.", @"Lid closed keep disabled failed message")
+#define KYA_L10N_LID_ALREADY_DISABLED_TITLE NSLocalizedString(@"Sleep is already disabled on this Mac", @"Sleep is already disabled on this Mac")
+#define KYA_L10N_LID_ALREADY_DISABLED_MESSAGE NSLocalizedString(@"The macOS \"disablesleep\" setting is already on, so your Mac stays awake with the lid closed even without StayLit. You or another app turned it on.\n\nStayLit leaves it on and won't turn it off when it stops. If it gets turned off while StayLit is on, StayLit tells you, and turns it on again the next time StayLit turns on.", @"Lid closed already disabled message")
 #define KYA_L10N_DURATIONS_ALERT_REALLY_RESET_TITLE NSLocalizedString(@"Reset Activation Durations", @"Reset Activation Durations")
 #define KYA_L10N_DURATIONS_ALERT_REALLY_RESET_MESSAGE NSLocalizedString(@"Do you really want to reset the activation durations to the default values?", @"Do you really want to reset the activation durations to the default values?")
 

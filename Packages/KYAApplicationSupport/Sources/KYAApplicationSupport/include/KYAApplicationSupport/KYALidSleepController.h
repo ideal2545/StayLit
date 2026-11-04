@@ -41,6 +41,23 @@ typedef NS_ENUM(NSInteger, KYALidSleepHelperState) {
 - (BOOL)runHelperCommand:(NSString *)command;
 @end
 
+@class KYALidSleepController;
+
+/// Tells the app about changes to show to the user.
+///
+/// All methods are called on the controller's private queue.
+@protocol KYALidSleepControllerDelegate <NSObject>
+@optional
+/// StayLit turned sleep back on because an activation ended.
+- (void)lidSleepControllerDidRestoreSleep:(KYALidSleepController *)controller;
+/// StayLit turned sleep back on at launch, because a previous run
+/// left it off (e.g. after a crash).
+- (void)lidSleepControllerDidRestoreSleepLeftByPreviousRun:(KYALidSleepController *)controller;
+/// Something else turned `SleepDisabled` off during an activation, so
+/// the Mac now sleeps when the lid closes. StayLit leaves it off.
+- (void)lidSleepControllerSleepSettingWasTurnedOffElsewhere:(KYALidSleepController *)controller;
+@end
+
 /// Keeps the Mac awake with the lid closed while an activation runs.
 ///
 /// Safety rules:
@@ -49,7 +66,20 @@ typedef NS_ENUM(NSInteger, KYALidSleepHelperState) {
 /// - It only turns `SleepDisabled` off again when it turned it on itself.
 ///   A `SleepDisabled` value that was already on stays on.
 /// - When the value can't be read, it changes nothing.
+///
+/// `SleepDisabled` is a single on/off value with no owner. If something
+/// else also turns it on while StayLit already has it on, nothing changes,
+/// so StayLit can't tell. That's why the app tells the user when it turns
+/// sleep back on, with a way to leave it disabled.
 @interface KYALidSleepController : NSObject
+
+/// Receives the changes to show to the user.
+@property (weak, nonatomic, nullable) id<KYALidSleepControllerDelegate> delegate;
+
+/// How often the setting is checked during an activation, to notice when
+/// something else turns it off. 0 turns the periodic check off. Set it
+/// before the first activation. The default is 10 seconds.
+@property (nonatomic) NSTimeInterval watchInterval;
 
 - (instancetype)initWithCommandRunner:(id<KYALidSleepCommandRunner>)runner
                              defaults:(NSUserDefaults *)defaults NS_DESIGNATED_INITIALIZER;
@@ -69,8 +99,18 @@ typedef NS_ENUM(NSInteger, KYALidSleepHelperState) {
 - (void)activationDidEnd;
 
 /// Restores `SleepDisabled` and waits up to `timeout` seconds for it.
-/// Use this when the app terminates.
-- (void)restoreSynchronouslyWithTimeout:(NSTimeInterval)timeout;
+/// Use this when the app terminates. Doesn't tell the delegate.
+/// Returns YES if it turned sleep back on in time.
+- (BOOL)restoreSynchronouslyWithTimeout:(NSTimeInterval)timeout;
+
+/// Leaves `SleepDisabled` on for good: turns it on if needed, and gives
+/// up ownership so StayLit never turns it off. Use this when the user
+/// asks to keep sleep disabled. `completion` runs on the main queue
+/// with YES if sleep is now disabled.
+- (void)keepSleepDisabledWithCompletion:(nullable void (^)(BOOL success))completion;
+
+/// Checks the setting right away, like the periodic check does.
+- (void)checkSettingNow;
 
 /// Blocks until all queued work has finished. For tests.
 - (void)waitUntilIdle;
