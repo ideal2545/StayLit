@@ -5,10 +5,26 @@
 ### v1.6.9
 
 - raised minimum deployment target to macOS 12 _(sadly, this is an external requirement by Apple's Xcode developer tools)_
-- added activation durations that end at a time of day, e.g. _"Until 5:00 PM"_ ([#161](https://github.com/newmarcel/KeepingYouAwake/issues/161))
+
+Fork additions ([ideal2545/StayLit](https://github.com/ideal2545/StayLit)), built with Xcode 27.2 for macOS 27:
+
+- added activation durations that end at a time of day, e.g. _"Until 5:00 PM"_ ([#263](https://github.com/newmarcel/KeepingYouAwake/pull/263), closes [#161](https://github.com/newmarcel/KeepingYouAwake/issues/161))
 	- add one in _Settings > Activation Duration > +_ by switching the sheet from _Duration_ to _Until_, and set it as the default like any other duration
 	- _Activate for Duration > Until…_ keeps the Mac awake until a one-off date and time without saving a preset
 	- the URL scheme accepts `keepingyouawake:///activate?until=17:00` and `until=2026-10-03T17:00`
+	- *Thank you [austin-rt](https://github.com/austin-rt)!*
+- fixed the remaining time going negative and the activation outliving its duration after the Mac was asleep ([#157](https://github.com/newmarcel/KeepingYouAwake/issues/157))
+- fixed `keepingyouawake:///activate` turning the app off (or showing it as off) when it was already active ([#248](https://github.com/newmarcel/KeepingYouAwake/issues/248))
+- changing "Allow the display to sleep" now applies to a running activation immediately instead of on the next activation
+- added an "Allow the display to sleep" toggle to the menu ([#240](https://github.com/newmarcel/KeepingYouAwake/pull/240), closes [#265](https://github.com/newmarcel/KeepingYouAwake/issues/265))
+	- *Thank you [lucasmezencio](https://github.com/lucasmezencio)!*
+- the remaining time in the menu now updates live while the menu is open ([#241](https://github.com/newmarcel/KeepingYouAwake/pull/241))
+	- *Thank you [bryanvrgsc](https://github.com/bryanvrgsc)!*
+- the battery capacity threshold is clamped to 10–100% when saved ([#242](https://github.com/newmarcel/KeepingYouAwake/pull/242))
+	- *Thank you [bryanvrgsc](https://github.com/bryanvrgsc)!*
+- added missing Korean translations ([#245](https://github.com/newmarcel/KeepingYouAwake/pull/245))
+	- *Thank you [wplong11](https://github.com/wplong11)!*
+- Sparkle update feeds point at this fork instead of upstream
 
 ### v1.6.8 (2025-09-12)
 

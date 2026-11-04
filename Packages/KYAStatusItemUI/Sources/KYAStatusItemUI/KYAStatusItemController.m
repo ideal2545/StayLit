@@ -82,7 +82,7 @@
 - (KYAStatusItemAppearance)appearance
 {
     Auto menubarIcon = KYAStatusItemImageProvider.currentProvider;
-    return self.systemStatusItem.image == menubarIcon.activeIconImage;
+    return self.systemStatusItem.button.image == menubarIcon.activeIconImage;
 }
 
 - (void)setAppearance:(KYAStatusItemAppearance)appearance

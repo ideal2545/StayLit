@@ -57,6 +57,13 @@
         "identifier" : "KYAApplicationSupportTests",
         "name" : "KYAApplicationSupportTests"
       }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:Packages\/KYASleepWakeTimer",
+        "identifier" : "KYASleepWakeTimerTests",
+        "name" : "KYASleepWakeTimerTests"
+      }
     }
   ],
   "version" : 1

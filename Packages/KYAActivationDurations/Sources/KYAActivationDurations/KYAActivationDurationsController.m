@@ -262,8 +262,17 @@ static NSString * const KYADefaultsKeyClockTimeDurations = @"info.marcel-dierkes
     }
 #endif
     
+    NSArray<NSNumber *> *clockTimes = [self.userDefaults objectForKey:KYADefaultsKeyClockTimeDurations];
+    BOOL hasStoredClockTimes = (clockTimes != nil && [clockTimes isKindOfClass:[NSArray class]] && clockTimes.count > 0);
+
     BOOL needsSave = NO;
-    if(loadedDurations == nil || loadedDurations.count == 0)
+    if((loadedDurations == nil || loadedDurations.count == 0) && hasStoredClockTimes)
+    {
+        // Only clock times are configured: keep it that way instead of
+        // bringing back the deleted fixed presets.
+        self.storedActivationDurations = [NSMutableArray new];
+    }
+    else if(loadedDurations == nil || loadedDurations.count == 0)
     {
         [self restoreDefaultDurations];
         needsSave = YES;
@@ -278,8 +287,7 @@ static NSString * const KYADefaultsKeyClockTimeDurations = @"info.marcel-dierkes
         os_log(KYAActivationDurationsLog(), "Loaded durations from user defaults: %{public}@", loadedDurations);
     }
 
-    NSArray<NSNumber *> *clockTimes = [self.userDefaults objectForKey:KYADefaultsKeyClockTimeDurations];
-    if(clockTimes != nil && [clockTimes isKindOfClass:[NSArray class]])
+    if(hasStoredClockTimes)
     {
         for(NSNumber *value in clockTimes)
         {

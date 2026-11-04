@@ -212,4 +212,25 @@
     XCTAssertEqualObjects(reloaded.defaultActivationDuration, KYAActivationDuration.indefiniteActivationDuration);
 }
 
+- (void)testClockTimeOnlyConfigurationDoesNotRestoreFixedPresets
+{
+    Auto controller = self.controller;
+    Auto five = [[KYAActivationDuration alloc] initWithClockTimeHour:17 minute:0];
+    XCTAssertTrue([controller addActivationDuration:five]);
+    
+    for(KYAActivationDuration *duration in [controller.activationDurations copy])
+    {
+        if(duration.isClockTime || [duration isEqualToActivationDuration:KYAActivationDuration.indefiniteActivationDuration]) { continue; }
+        [controller removeActivationDuration:duration];
+    }
+    
+    Auto reloaded = [[KYAActivationDurationsController alloc] initWithUserDefaults:controller.userDefaults];
+    for(KYAActivationDuration *duration in reloaded.activationDurations)
+    {
+        BOOL isIndefinite = [duration isEqualToActivationDuration:KYAActivationDuration.indefiniteActivationDuration];
+        XCTAssertTrue(duration.isClockTime || isIndefinite, @"Unexpected restored preset %@", duration);
+    }
+    XCTAssertTrue([reloaded.activationDurations containsObject:five]);
+}
+
 @end

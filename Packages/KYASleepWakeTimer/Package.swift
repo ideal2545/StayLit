@@ -15,5 +15,6 @@ let package = Package(
     ],
     targets: [
         .target(name: "KYASleepWakeTimer", dependencies: ["KYAApplicationSupport"]),
+        .testTarget(name: "KYASleepWakeTimerTests", dependencies: ["KYASleepWakeTimer"]),
     ]
 )

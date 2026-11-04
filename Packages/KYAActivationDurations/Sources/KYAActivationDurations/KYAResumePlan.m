@@ -28,8 +28,19 @@
     
     if(duration != nil && [duration isClockTime])
     {
-        plan.action = endHasPassed ? KYAResumeActionNone : KYAResumeActionActivationDuration;
         plan.activationDuration = duration;
+        if(fireDate != nil)
+        {
+            // Resume at the captured end instead of recomputing the next
+            // occurrence, which could roll over to tomorrow (rounding, time
+            // zone changes).
+            plan.action = endHasPassed ? KYAResumeActionNone : KYAResumeActionUntilDate;
+            plan.endDate = fireDate;
+        }
+        else
+        {
+            plan.action = KYAResumeActionActivationDuration;
+        }
         return plan;
     }
     

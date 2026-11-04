@@ -50,7 +50,7 @@ Activates and prevents sleep until the next 5:00 PM local time. The time uses th
 keepingyouawake:///activate?until=2026-10-03T17:00
 ```
 
-Activates and prevents sleep until that local date and time. A date in the past is ignored.
+Activates and prevents sleep until that local date and time. A date in the past, a date that does not exist (e.g. `2027-02-30T17:00`) or a time skipped by a daylight saving change is ignored, and a running activation stays as it is. The same applies to an invalid `until=HH:MM` value.
 
 _Please note: the seconds, minutes, hours and until parameters cannot be combined at the moment._
 

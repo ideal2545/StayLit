@@ -25,10 +25,17 @@
     return dateFormatter;
 }
 
+- (NSDate *)kya_clampedEndDate
+{
+    // Never display a negative remaining time, e.g. after the Mac woke from
+    // sleep past the fire date (#157).
+    return [self laterDate:NSDate.date];
+}
+
 - (NSString *)kya_localizedRemainingTime
 {
     Auto startDate = [NSDate dateWithTimeIntervalSinceNow:-1];
-    return [[self dateComponentsFormatter] stringFromDate:startDate toDate:self];
+    return [[self dateComponentsFormatter] stringFromDate:startDate toDate:[self kya_clampedEndDate]];
 }
 
 - (NSString *)kya_localizedRemainingTimeWithoutPhrase
@@ -36,7 +43,7 @@
     Auto formatter = [self dateComponentsFormatter];
     formatter.includesTimeRemainingPhrase = NO;
     Auto startDate = [NSDate dateWithTimeIntervalSinceNow:-1];
-    Auto remainingTimeString = [formatter stringFromDate:startDate toDate:self];
+    Auto remainingTimeString = [formatter stringFromDate:startDate toDate:[self kya_clampedEndDate]];
     formatter.includesTimeRemainingPhrase = YES;
     
     return remainingTimeString;

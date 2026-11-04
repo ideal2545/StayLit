@@ -31,6 +31,8 @@ KYA_EXPORT
 @interface KYAResumePlan : NSObject
 
 @property (nonatomic, readonly) KYAResumeAction action;
+/// The activation duration to resume. Also set for KYAResumeActionUntilDate
+/// when resuming a clock time, so it can still be shown as selected.
 @property (nonatomic, readonly, nullable) KYAActivationDuration *activationDuration;
 @property (nonatomic, readonly, nullable) NSDate *endDate;
 @property (nonatomic, readonly) NSTimeInterval timeInterval;

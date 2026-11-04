@@ -27,6 +27,33 @@
                                               fireDate:[self dateAtHour:17 minute:0]
                                           timeInterval:8 * 60 * 60
                                                    now:[self dateAtHour:16 minute:30]];
+    XCTAssertEqual(plan.action, KYAResumeActionUntilDate);
+    XCTAssertEqualObjects(plan.endDate, [self dateAtHour:17 minute:0]);
+    XCTAssertEqualObjects(plan.activationDuration, five);
+}
+
+// Scheduling rounds up, so the captured end can be a fraction of a second
+// after the clock time. Resuming in that window must not roll over to the
+// next day's occurrence.
+- (void)testClockTimeResumesAtCapturedEndNotNextOccurrence
+{
+    Auto five = [[KYAActivationDuration alloc] initWithClockTimeHour:17 minute:0];
+    Auto capturedEnd = [[self dateAtHour:17 minute:0] dateByAddingTimeInterval:0.4];
+    Auto plan = [KYAResumePlan planForResumingDuration:five
+                                              fireDate:capturedEnd
+                                          timeInterval:8 * 60 * 60
+                                                   now:[[self dateAtHour:17 minute:0] dateByAddingTimeInterval:0.2]];
+    XCTAssertEqual(plan.action, KYAResumeActionUntilDate);
+    XCTAssertEqualObjects(plan.endDate, capturedEnd);
+}
+
+- (void)testClockTimeWithoutFireDateResumesAsClockTime
+{
+    Auto five = [[KYAActivationDuration alloc] initWithClockTimeHour:17 minute:0];
+    Auto plan = [KYAResumePlan planForResumingDuration:five
+                                              fireDate:nil
+                                          timeInterval:8 * 60 * 60
+                                                   now:[self dateAtHour:16 minute:30]];
     XCTAssertEqual(plan.action, KYAResumeActionActivationDuration);
     XCTAssertEqualObjects(plan.activationDuration, five);
 }

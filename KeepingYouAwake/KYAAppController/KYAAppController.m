@@ -26,6 +26,9 @@
 
 @property (nonatomic) NSTimeInterval workspaceScheduledTimeInterval;
 
+// Settings that require restarting caffeinate when changed
+@property (nonatomic) BOOL lastAllowDisplaySleep;
+
 // Captured on session resign so a clock time or one-off resumes at its original end
 @property (nonatomic, nullable) KYAActivationDuration *workspaceActivationDuration;
 @property (nonatomic, nullable) NSDate *workspaceFireDate;
@@ -70,6 +73,12 @@
                        name:kKYABatteryCapacityThresholdDidChangeNotification
                      object:nil];
         
+        self.lastAllowDisplaySleep = [NSUserDefaults.standardUserDefaults kya_shouldAllowDisplaySleep];
+        [center addObserver:self
+                   selector:@selector(userDefaultsDidChange:)
+                       name:NSUserDefaultsDidChangeNotification
+                     object:nil];
+        
         [self registerForWorkspaceSessionNotifications];
     }
     return self;
@@ -81,6 +90,7 @@
     [center removeObserver:self name:NSApplicationDidFinishLaunchingNotification object:nil];
     [center removeObserver:self name:NSApplicationDidChangeScreenParametersNotification object:nil];
     [center removeObserver:self name:kKYABatteryCapacityThresholdDidChangeNotification object:nil];
+    [center removeObserver:self name:NSUserDefaultsDidChangeNotification object:nil];
     
     [self unregisterFromWorkspaceSessionNotifications];
 }
@@ -285,7 +295,12 @@
     
     // Check battery overrides and register for capacity changes.
     [self checkAndEnableBatteryOverride];
-    
+
+    // Re-activating while active (e.g. via the URL scheme) calls this again
+    // without a deactivation in between; never register twice.
+    [center removeObserver:self
+                      name:KYADeviceParameterDidChangeNotification
+                    object:device];
     [center addObserver:self
                selector:@selector(deviceParameterDidChange:)
                    name:KYADeviceParameterDidChangeNotification
@@ -322,6 +337,28 @@
     {
         [self terminateTimer];
     }
+}
+
+#pragma mark - User Defaults Changes
+
+- (void)userDefaultsDidChange:(NSNotification *)notification
+{
+    // May be posted on any thread
+    AutoWeak weakSelf = self;
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [weakSelf applyChangedUserDefaultsIfNeeded];
+    });
+}
+
+- (void)applyChangedUserDefaultsIfNeeded
+{
+    BOOL allowDisplaySleep = [NSUserDefaults.standardUserDefaults kya_shouldAllowDisplaySleep];
+    if(allowDisplaySleep == self.lastAllowDisplaySleep) { return; }
+    self.lastAllowDisplaySleep = allowDisplaySleep;
+    
+    // Apply the display sleep setting to a running activation right away,
+    // instead of only on the next activation.
+    [self.sleepWakeTimer refreshCaffeinateTask];
 }
 
 #pragma mark - Workspace Session Handling
@@ -372,6 +409,10 @@
                 break;
             case KYAResumeActionUntilDate:
                 [self activateTimerUntilDate:plan.endDate];
+                if(plan.activationDuration != nil && [self.sleepWakeTimer isScheduled])
+                {
+                    self.activeActivationDuration = plan.activationDuration;
+                }
                 break;
             case KYAResumeActionTimeInterval:
                 [self activateTimerWithTimeInterval:plan.timeInterval];
@@ -428,6 +469,14 @@
     NSString *hours = parameters[@"hours"];
     NSString *until = parameters[@"until"];
 
+    // Validate `until` before touching a running activation, so an invalid
+    // or past value is ignored as documented instead of deactivating.
+    if(until != nil)
+    {
+        [self handleActivateUntilParameter:until];
+        return;
+    }
+
     [self terminateTimer];
     
     Auto statusItemController = self.statusItemController;
@@ -437,52 +486,6 @@
     {
         [self activateTimer];
         statusItemController.appearance = KYAStatusItemAppearanceActive;
-    }
-    else if(until != nil)
-    {
-        if([until containsString:@"T"])
-        {
-            // A fixed machine format must not follow the user's 12-hour or calendar settings
-            Auto formatter = [NSDateFormatter new];
-            formatter.locale = [NSLocale localeWithLocaleIdentifier:@"en_US_POSIX"];
-            formatter.calendar = [NSCalendar calendarWithIdentifier:NSCalendarIdentifierGregorian];
-            formatter.timeZone = NSTimeZone.localTimeZone;
-            formatter.dateFormat = @"yyyy-MM-dd'T'HH:mm";
-            Auto endDate = [formatter dateFromString:until];
-            if(endDate != nil && endDate.timeIntervalSinceNow >= 1.0f)
-            {
-                [self activateTimerUntilDate:endDate];
-            }
-            else
-            {
-                statusItemController.appearance = KYAStatusItemAppearanceInactive;
-            }
-            return;
-        }
-        
-        Auto components = [until componentsSeparatedByString:@":"];
-        Auto digits = NSCharacterSet.decimalDigitCharacterSet.invertedSet;
-        KYAActivationDuration *duration;
-        if(components.count == 2
-           && [components[0] length] > 0 && [components[0] length] <= 2 && [components[0] rangeOfCharacterFromSet:digits].location == NSNotFound
-           && [components[1] length] == 2 && [components[1] rangeOfCharacterFromSet:digits].location == NSNotFound)
-        {
-            NSInteger hour = [components[0] integerValue];
-            NSInteger minute = [components[1] integerValue];
-            if(hour <= 23 && minute <= 59)
-            {
-                duration = [[KYAActivationDuration alloc] initWithClockTimeHour:hour minute:minute];
-            }
-        }
-        if(duration != nil)
-        {
-            [self activateTimerWithActivationDuration:duration];
-            statusItemController.appearance = KYAStatusItemAppearanceActive;
-        }
-        else
-        {
-            statusItemController.appearance = KYAStatusItemAppearanceInactive;
-        }
     }
     else if(seconds != nil)
     {
@@ -503,6 +506,85 @@
     {
         statusItemController.appearance = KYAStatusItemAppearanceInactive;
     }
+}
+
+/// Parses `YYYY-MM-DDTHH:MM` in the local time zone. Returns nil for malformed
+/// input and for dates that do not exist (e.g. Feb 30, or a time skipped by a
+/// daylight saving transition), which NSDateFormatter would otherwise silently
+/// normalize into a different date.
+static NSDate * _Nullable KYAEndDateFromURLDateTimeString(NSString *string)
+{
+    static NSRegularExpression *pattern;
+    static NSDateFormatter *formatter;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        pattern = [NSRegularExpression regularExpressionWithPattern:@"^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}$"
+                                                            options:0
+                                                              error:nil];
+        // A fixed machine format must not follow the user's 12-hour or calendar settings
+        formatter = [NSDateFormatter new];
+        formatter.locale = [NSLocale localeWithLocaleIdentifier:@"en_US_POSIX"];
+        formatter.calendar = [NSCalendar calendarWithIdentifier:NSCalendarIdentifierGregorian];
+        formatter.dateFormat = @"yyyy-MM-dd'T'HH:mm";
+        formatter.lenient = NO;
+    });
+    
+    if([pattern numberOfMatchesInString:string options:0 range:NSMakeRange(0, string.length)] != 1)
+    {
+        return nil;
+    }
+    
+    formatter.timeZone = NSTimeZone.localTimeZone;
+    Auto date = [formatter dateFromString:string];
+    if(date == nil) { return nil; }
+    
+    // Round-trip to reject normalized (non-existent) dates and times
+    if([[formatter stringFromDate:date] isEqualToString:string] == NO) { return nil; }
+    
+    return date;
+}
+
+/// Parses `HH:MM` (24-hour clock) into a clock time activation duration.
+static KYAActivationDuration * _Nullable KYAClockTimeDurationFromURLTimeString(NSString *string)
+{
+    Auto components = [string componentsSeparatedByString:@":"];
+    Auto nonDigits = NSCharacterSet.decimalDigitCharacterSet.invertedSet;
+    if(components.count != 2) { return nil; }
+    
+    NSString *hourString = components[0];
+    NSString *minuteString = components[1];
+    if(hourString.length == 0 || hourString.length > 2 || [hourString rangeOfCharacterFromSet:nonDigits].location != NSNotFound) { return nil; }
+    if(minuteString.length != 2 || [minuteString rangeOfCharacterFromSet:nonDigits].location != NSNotFound) { return nil; }
+    
+    NSInteger hour = hourString.integerValue;
+    NSInteger minute = minuteString.integerValue;
+    if(hour > 23 || minute > 59) { return nil; }
+    
+    return [[KYAActivationDuration alloc] initWithClockTimeHour:hour minute:minute];
+}
+
+- (void)handleActivateUntilParameter:(NSString *)until
+{
+    if([until containsString:@"T"])
+    {
+        Auto endDate = KYAEndDateFromURLDateTimeString(until);
+        if(endDate == nil || endDate.timeIntervalSinceNow < 1.0)
+        {
+            return; // Invalid or in the past: ignored
+        }
+        [self activateTimerUntilDate:endDate];
+        return;
+    }
+    
+    Auto duration = KYAClockTimeDurationFromURLTimeString(until);
+    if(duration == nil)
+    {
+        return; // Invalid: ignored
+    }
+    
+    [self terminateTimer];
+    [self activateTimerWithActivationDuration:duration];
+    self.statusItemController.appearance = KYAStatusItemAppearanceActive;
 }
 
 #pragma mark - Internal / External Screen Parameter Changes

@@ -127,10 +127,21 @@ static const CGFloat KYAMenuItemDefaultFontSize = 14.0f;
     if(![delegate respondsToSelector:@selector(fireDateForMenuController:)]) { return; }
     
     Auto fireDate = [delegate fireDateForMenuController:self];
-    if(fireDate == nil) { return; }
-    
     Auto menuItem = self.menu.itemArray.firstObject;
-    if(menuItem != nil && menuItem.tag == KYAMenuItemRemainingTimeTag)
+    BOOL hasRemainingTimeItem = (menuItem != nil && menuItem.tag == KYAMenuItemRemainingTimeTag);
+
+    if(fireDate == nil)
+    {
+        // The activation ended while the menu was open: drop the stale
+        // countdown and selection by rebuilding the menu.
+        if(hasRemainingTimeItem)
+        {
+            [self menuNeedsUpdate:self.menu];
+        }
+        return;
+    }
+
+    if(hasRemainingTimeItem)
     {
         menuItem.title = fireDate.kya_localizedRemainingTime;
     }

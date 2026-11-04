@@ -99,7 +99,8 @@
     Auto fireDate = duration.nextClockTimeDate;
     XCTAssertNotNil(fireDate);
     XCTAssertGreaterThan(fireDate.timeIntervalSinceNow, 0);
-    XCTAssertLessThanOrEqual(fireDate.timeIntervalSinceNow, 24 * 60 * 60 + 1);
+    // Up to 25 hours away when a daylight saving fall-back happens in between
+    XCTAssertLessThanOrEqual(fireDate.timeIntervalSinceNow, 25 * 60 * 60 + 1);
     
     Auto components = [NSCalendar.currentCalendar components:NSCalendarUnitHour | NSCalendarUnitMinute
                                                     fromDate:fireDate];

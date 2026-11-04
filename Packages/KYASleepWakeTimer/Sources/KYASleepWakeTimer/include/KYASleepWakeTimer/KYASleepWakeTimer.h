@@ -51,6 +51,13 @@ typedef void (^KYASleepWakeTimerCompletionBlock)(BOOL cancelled);
 /// the fireDate to nil.
 - (void)invalidate;
 
+/// Restarts the running Caffeinate Task with the remaining time interval,
+/// so changed settings (e.g. allowing the display to sleep) take effect
+/// immediately. The fireDate, scheduledTimeInterval and completion block
+/// are preserved and no delegate callbacks are sent. Does nothing if the
+/// timer is not scheduled.
+- (void)refreshCaffeinateTask;
+
 @end
 
 @protocol KYASleepWakeTimerDelegate <NSObject>
