@@ -12,6 +12,7 @@ Fork additions ([ideal2545/StayLit](https://github.com/ideal2545/StayLit)), buil
 
 - renamed the app to **StayLit** with the bundle ID `com.principia29.StayLit`; it uses a fresh settings container and can run next to the original app
 	- added the `staylit:///` URL scheme; `keepingyouawake:///` still works
+- added the advanced setting _Only notify when StayLit turns on or off by itself_, which skips notifications for changes you make yourself ([#172](https://github.com/newmarcel/KeepingYouAwake/issues/172))
 - added activation durations that end at a time of day, e.g. _"Until 5:00 PM"_ ([#263](https://github.com/newmarcel/KeepingYouAwake/pull/263), closes [#161](https://github.com/newmarcel/KeepingYouAwake/issues/161))
 	- add one in _Settings > Activation Duration > +_ by switching the sheet from _Duration_ to _Until_, and set it as the default like any other duration
 	- _Activate for Duration > Until…_ keeps the Mac awake until a one-off date and time without saving a preset

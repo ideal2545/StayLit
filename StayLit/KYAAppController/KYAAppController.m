@@ -35,6 +35,12 @@
 
 @property (nonatomic, nullable) KYAActivationDuration *activeActivationDuration;
 
+// Notifications: YES while handling a click, a menu item or the until panel,
+// so these changes can skip their notification (#172).
+@property (nonatomic, getter=isHandlingUserAction) BOOL handlingUserAction;
+// YES when the user turned the current activation off.
+@property (nonatomic) BOOL deactivationIsUserInitiated;
+
 @property (nonatomic, nullable) KYAActivateUntilDateWindowController *activateUntilDateWindowController;
 
 // Battery Status
@@ -114,7 +120,9 @@
         controller = [KYAActivateUntilDateWindowController new];
         AutoWeak weakSelf = self;
         controller.completionHandler = ^(NSDate *endDate) {
-            [weakSelf activateTimerUntilDate:endDate];
+            [weakSelf performUserAction:^{
+                [weakSelf activateTimerUntilDate:endDate];
+            }];
         };
         self.activateUntilDateWindowController = controller;
     }
@@ -185,11 +193,20 @@
     self.activeActivationDuration = nil;
 
     Auto defaults = NSUserDefaults.standardUserDefaults;
-    
+    BOOL userInitiated = self.handlingUserAction;
+    self.deactivationIsUserInitiated = NO;
+
+    AutoWeak weakSelf = self;
     Auto timerCompletion = ^(BOOL cancelled) {
-        // Post deactivation notification
-        Auto notification = [[KYAActivationUserNotification alloc] initWithFireDate:nil activating:NO];
-        [KYAUserNotificationCenter.sharedCenter postNotification:notification];
+        // Post deactivation notification, unless the user turned it off
+        // and only wants notifications for automatic changes.
+        BOOL quiet = cancelled && weakSelf.deactivationIsUserInitiated
+            && [defaults kya_areManualChangeNotificationsDisabled];
+        if(quiet == NO)
+        {
+            Auto notification = [[KYAActivationUserNotification alloc] initWithFireDate:nil activating:NO];
+            [KYAUserNotificationCenter.sharedCenter postNotification:notification];
+        }
 
         // Quit on timer expiration
         if(cancelled == NO && [defaults kya_isQuitOnTimerExpirationEnabled])
@@ -200,13 +217,28 @@
     [self.sleepWakeTimer scheduleWithTimeInterval:timeInterval completion:timerCompletion];
 
     // Post activation notification
+    if(userInitiated && [defaults kya_areManualChangeNotificationsDisabled]) { return; }
     Auto fireDate = self.sleepWakeTimer.fireDate;
     Auto notification = [[KYAActivationUserNotification alloc] initWithFireDate:fireDate activating:YES];
     [KYAUserNotificationCenter.sharedCenter postNotification:notification];
 }
 
+/// Runs a change the user made directly (a click, the keyboard shortcut,
+/// a menu item or the until panel), so its notification can be skipped.
+- (void)performUserAction:(void (^)(void))action
+{
+    BOOL wasHandling = self.handlingUserAction;
+    self.handlingUserAction = YES;
+    action();
+    self.handlingUserAction = wasHandling;
+}
+
 - (void)terminateTimer
 {
+    if(self.handlingUserAction && [self.sleepWakeTimer isScheduled])
+    {
+        self.deactivationIsUserInitiated = YES;
+    }
     [self disableBatteryOverride];
 
     if([self.sleepWakeTimer isScheduled])
@@ -456,8 +488,8 @@
     }];
     
     [eventHandler registerActionNamed:@"toggle" block:^(KYAEvent *event) {
-        Auto strongSelf = weakSelf;
-        [strongSelf statusItemControllerShouldPerformPrimaryAction:strongSelf.statusItemController];
+        // Not a user action: URLs usually come from scripts, so they still notify.
+        [weakSelf toggleActivation];
     }];
 }
 
@@ -628,6 +660,13 @@ static KYAActivationDuration * _Nullable KYAClockTimeDurationFromURLTimeString(N
 
 - (void)statusItemControllerShouldPerformPrimaryAction:(KYAStatusItemController *)controller
 {
+    [self performUserAction:^{
+        [self toggleActivation];
+    }];
+}
+
+- (void)toggleActivation
+{
     if([self.sleepWakeTimer isScheduled])
     {
         [self terminateTimer];
@@ -659,11 +698,15 @@ static KYAActivationDuration * _Nullable KYAClockTimeDurationFromURLTimeString(N
 
 - (void)activationDurationsMenuController:(KYAActivationDurationsMenuController *)controller didSelectActivationDuration:(KYAActivationDuration *)activationDuration
 {
-    [self terminateTimer];
+    [self performUserAction:^{
+        [self terminateTimer];
+    }];
 
     AutoWeak weakSelf = self;
     dispatch_async(dispatch_get_main_queue(), ^{
-        [weakSelf activateTimerWithActivationDuration:activationDuration];
+        [weakSelf performUserAction:^{
+            [weakSelf activateTimerWithActivationDuration:activationDuration];
+        }];
     });
 }
 

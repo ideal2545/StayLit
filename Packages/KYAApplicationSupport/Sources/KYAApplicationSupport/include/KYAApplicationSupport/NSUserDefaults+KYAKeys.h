@@ -16,6 +16,7 @@ KYA_EXPORT NSString * const KYAUserDefaultsKeyActivateOnLaunch;
 KYA_EXPORT NSString * const KYAUserDefaultsKeyAllowDisplaySleep;
 KYA_EXPORT NSString * const KYAUserDefaultsKeyActivateOnExternalDisplayConnectedEnabled;
 KYA_EXPORT NSString * const KYAUserDefaultsKeyDeactivateOnUserSwitchEnabled;
+KYA_EXPORT NSString * const KYAUserDefaultsKeyManualChangeNotificationsDisabled;
 KYA_EXPORT NSString * const KYAUserDefaultsKeyMenuBarIconHighlightDisabled;
 KYA_EXPORT NSString * const KYAUserDefaultsKeyIsQuitOnTimerExpirationEnabled;
 KYA_EXPORT NSString * const KYAUserDefaultsKeyBatteryCapacityThresholdEnabled;
@@ -57,6 +58,10 @@ KYA_EXPORT NSString * const KYAUserDefaultsKeyPreReleaseUpdatesEnabled;
 
 /// Returns YES if the app should deactivate when the user account is switched.
 @property (nonatomic, getter=kya_isDeactivateOnUserSwitchEnabled) BOOL kya_deactivateOnUserSwitchEnabled;
+
+/// StayLit: Returns YES if notifications should only be shown when StayLit
+/// turns on or off by itself, not when the user turns it on or off.
+@property (nonatomic, getter=kya_areManualChangeNotificationsDisabled) BOOL kya_manualChangeNotificationsDisabled;
 
 @end
 
