@@ -16,6 +16,8 @@ KYA_EXPORT NSString * const KYAUserDefaultsKeyActivateOnLaunch;
 KYA_EXPORT NSString * const KYAUserDefaultsKeyAllowDisplaySleep;
 KYA_EXPORT NSString * const KYAUserDefaultsKeyActivateOnExternalDisplayConnectedEnabled;
 KYA_EXPORT NSString * const KYAUserDefaultsKeyDeactivateOnUserSwitchEnabled;
+KYA_EXPORT NSString * const KYAUserDefaultsKeyPauseWhileScreenLockedEnabled;
+KYA_EXPORT NSString * const KYAUserDefaultsKeyDeactivateOnSleepEnabled;
 KYA_EXPORT NSString * const KYAUserDefaultsKeyMenuBarIconHighlightDisabled;
 KYA_EXPORT NSString * const KYAUserDefaultsKeyIsQuitOnTimerExpirationEnabled;
 KYA_EXPORT NSString * const KYAUserDefaultsKeyBatteryCapacityThresholdEnabled;
@@ -57,6 +59,13 @@ KYA_EXPORT NSString * const KYAUserDefaultsKeyPreReleaseUpdatesEnabled;
 
 /// Returns YES if the app should deactivate when the user account is switched.
 @property (nonatomic, getter=kya_isDeactivateOnUserSwitchEnabled) BOOL kya_deactivateOnUserSwitchEnabled;
+
+/// StayLit: Returns YES if an activation should pause while the screen is
+/// locked and resume when it's unlocked.
+@property (nonatomic, getter=kya_isPauseWhileScreenLockedEnabled) BOOL kya_pauseWhileScreenLockedEnabled;
+
+/// StayLit: Returns YES if an activation should end when the Mac goes to sleep.
+@property (nonatomic, getter=kya_isDeactivateOnSleepEnabled) BOOL kya_deactivateOnSleepEnabled;
 
 @end
 
