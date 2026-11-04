@@ -324,7 +324,7 @@ static const NSTimeInterval KYASleepWakeTimerExpirationTolerance = 0.5;
         if(strongSelf == nil) { return; }
 
         // The timer was activated again before this callback ran
-        // (e.g. `keepingyouawake:///activate` while already active).
+        // (e.g. `staylit:///activate` while already active).
         // Reporting the stale deactivation would flip the UI to inactive
         // although caffeinate is running (#248).
         if(strongSelf.generation != generation || [strongSelf isScheduled])

@@ -4,7 +4,7 @@
 
 StayLit supports the `staylit:///` URL scheme, so other apps and scripts can switch it on and off.
 
-The older `keepingyouawake:///` scheme also works, with the same commands.
+StayLit doesn't answer `keepingyouawake:///` links, so it never clashes with KeepingYouAwake installed on the same Mac. Scripts written for KeepingYouAwake work after changing the scheme to `staylit:///`.
 
 ### activate
 

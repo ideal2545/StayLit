@@ -14,7 +14,7 @@ Fork additions ([ideal2545/StayLit](https://github.com/ideal2545/StayLit)), buil
 	- turns the macOS `disablesleep` power setting on while active and off again afterwards, and never turns off a `disablesleep` you set yourself
 	- one-time setup: a helper script in the app's scripts folder, plus an administrator password for a sudoers rule limited to `pmset -a disablesleep 1` and `0`
 - renamed the app to **StayLit** with the bundle ID `com.principia29.StayLit`; it uses a fresh settings container and can run next to the original app
-	- added the `staylit:///` URL scheme; `keepingyouawake:///` still works
+	- added the `staylit:///` URL scheme; StayLit doesn't answer `keepingyouawake:///` links, so it never takes them from KeepingYouAwake
 - new app icon and menu bar icon: a star rising over a planet
 - added a keyboard shortcut that turns StayLit on or off from any app ([#190](https://github.com/newmarcel/KeepingYouAwake/issues/190))
 	- record it in _Settings > General > Keyboard Shortcut_

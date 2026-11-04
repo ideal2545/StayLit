@@ -16,7 +16,6 @@
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>staylit</string>
-				<string>keepingyouawake</string>
 			</array>
 		</dict>
 	</array>
