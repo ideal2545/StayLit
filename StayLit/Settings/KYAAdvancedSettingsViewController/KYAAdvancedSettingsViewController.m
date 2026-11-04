@@ -82,6 +82,7 @@
     [settings addObject:[[KYAUserDefaultsSetting alloc] initWithTitle:KYA_L10N_ACTIVATE_ON_EXTERNAL_DISPLAY key:KYAUserDefaultsKeyActivateOnExternalDisplayConnectedEnabled]];
     [settings addObject:[[KYAUserDefaultsSetting alloc] initWithTitle:KYA_L10N_DEACTIVATE_ON_USER_SWITCH key:KYAUserDefaultsKeyDeactivateOnUserSwitchEnabled]];
     [settings addObject:[[KYAUserDefaultsSetting alloc] initWithTitle:KYA_L10N_KEEP_AWAKE_WITH_LID_CLOSED key:KYAUserDefaultsKeyKeepAwakeWithLidClosed]];
+    [settings addObject:[[KYAUserDefaultsSetting alloc] initWithTitle:KYA_L10N_ONLY_AUTOMATIC_NOTIFICATIONS key:KYAUserDefaultsKeyManualChangeNotificationsDisabled]];
     
     self.settings = [settings copy];
 }

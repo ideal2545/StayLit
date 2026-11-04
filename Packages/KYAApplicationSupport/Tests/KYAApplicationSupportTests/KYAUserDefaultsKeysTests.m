@@ -66,6 +66,10 @@ KYA_GENERATE_BOOL_TEST(isActivateOnExternalDisplayConnectedEnabled,
                        activateOnExternalDisplayConnectedEnabled,
                        KYAUserDefaultsKeyActivateOnExternalDisplayConnectedEnabled);
 
+KYA_GENERATE_BOOL_TEST(areManualChangeNotificationsDisabled,
+                       manualChangeNotificationsDisabled,
+                       KYAUserDefaultsKeyManualChangeNotificationsDisabled);
+
 KYA_GENERATE_BOOL_TEST(isDeactivateOnUserSwitchEnabled,
                        deactivateOnUserSwitchEnabled,
                        KYAUserDefaultsKeyDeactivateOnUserSwitchEnabled);

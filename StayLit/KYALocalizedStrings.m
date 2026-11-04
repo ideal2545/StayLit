@@ -58,6 +58,7 @@
 #define KYA_L10N_QUIT_ON_TIMER_EXPIRATION NSLocalizedString(@"Quit when activation duration is over", @"Quit when activation duration is over")
 #define KYA_L10N_ALLOW_DISPLAY_SLEEP NSLocalizedString(@"Allow the display to sleep", @"Allow the display to sleep")
 #define KYA_L10N_ACTIVATE_ON_EXTERNAL_DISPLAY NSLocalizedString(@"Activate when an external display is connected", @"Activate when an external display is connected")
+#define KYA_L10N_ONLY_AUTOMATIC_NOTIFICATIONS NSLocalizedString(@"Only notify when StayLit turns on or off by itself", @"Only notify when StayLit turns on or off by itself")
 #define KYA_L10N_DEACTIVATE_ON_USER_SWITCH NSLocalizedString(@"Deactivate when switched to another user account", @"Deactivate when switched to another user account")
 #define KYA_L10N_KEEP_AWAKE_WITH_LID_CLOSED NSLocalizedString(@"Keep awake when the lid is closed", @"Keep awake when the lid is closed")
 

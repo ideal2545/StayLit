@@ -67,6 +67,10 @@ KYA_GENERATE_BOOL_PROPERTY(isDeactivateOnUserSwitchEnabled,
                            deactivateOnUserSwitchEnabled,
                            DeactivateOnUserSwitchEnabled);
 
+KYA_GENERATE_BOOL_PROPERTY(areManualChangeNotificationsDisabled,
+                           manualChangeNotificationsDisabled,
+                           ManualChangeNotificationsDisabled);
+
 KYA_GENERATE_BOOL_PROPERTY(isBatteryCapacityThresholdEnabled,
                            batteryCapacityThresholdEnabled,
                            BatteryCapacityThresholdEnabled);

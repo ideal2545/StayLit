@@ -65,8 +65,15 @@ Upstream [#190](https://github.com/newmarcel/KeepingYouAwake/issues/190). *Setti
 - **Refused shortcuts:** if macOS refuses a shortcut, StayLit removes it and Settings shows an alert.
 - **Limitation:** macOS doesn't report a clash with another app's shortcut. If two apps register the same one, only one of them gets it.
 
+### Notifications only for automatic changes
+Upstream [#172](https://github.com/newmarcel/KeepingYouAwake/issues/172). The Advanced setting *Only notify when StayLit turns on or off by itself* skips the notification for changes you make yourself.
+
+- **Your own changes:** clicking the menu bar icon, choosing a duration or *Until…* in the menu, and the keyboard shortcut once it's merged.
+- **Still notify:** the activation ending on time, the battery or Low Power Mode turning it off, an external display, switching users, and `staylit://` URLs. URLs often come from scripts, so they count as automatic.
+- **How:** `KYAAppController` runs your own actions inside `performUserAction:`. An activation remembers whether you turned it off, because the deactivation callback arrives later on the main queue.
+
 ### Not done (feature requests, left for later)
-Other lid-closed modes (#255 turn off on lid open, #266 screen-only), CLI status (#225), notification toggles (#172), schedules (#189), and deactivating on lock/sleep (#93, #98, #108) are all new features, not compatibility work. #235 (activate on *window* mirroring / AirPlay) needs hardware to reproduce.
+Other lid-closed modes (#255 turn off on lid open, #266 screen-only), CLI status (#225), schedules (#189), and deactivating on lock/sleep (#93, #98, #108) are all new features, not compatibility work. #235 (activate on *window* mirroring / AirPlay) needs hardware to reproduce.
 
 ## Fork-specific setup
 - **Sparkle updates** point at `https://ideal2545.github.io/StayLit/appcast.xml`. That URL doesn't exist yet, so update checks fail quietly instead of offering upstream builds that would overwrite this fork. Shipping updates later needs GitHub Pages plus an appcast, and builds signed with the same Developer ID each time. Sparkle can also use an EdDSA key (`generate_keys`); upstream never set one.
