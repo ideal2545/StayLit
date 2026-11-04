@@ -69,9 +69,10 @@ Other lid-closed modes (#255 turn off on lid open, #266 screen-only), CLI status
 ## Name and bundle identifier
 The fork is called **StayLit**. Its bundle ID is `com.principia29.StayLit` and its launcher's is `com.principia29.StayLit.Launcher`.
 
-Upstream's README asks that forks not be redistributed under the same name and icon. The MIT license doesn't require that, but the rename honors it. `LICENSE`, Marcel's copyright line (`NSHumanReadableCopyright`) and the credits are kept.
+Upstream's README asks that forks not be redistributed under the same name and icon. The MIT license doesn't require that, but the rename and the new icon honor it. `LICENSE`, Marcel's copyright line (`NSHumanReadableCopyright`) and the credits are kept.
 
 **What changed in the rename**
+- **Icon:** StayLit has its own app icon (a star rising over a planet, with warp streaks) and menu bar icon (a sunrise: outlined when off, with rays when on). The app icon is an Icon Composer document in `StayLit/AppIcon.icon` and `KYALauncher/AppIcon.icon`, built from plain SVG layers. The menu bar icons are the `ActiveIcon`/`InactiveIcon` template PNGs at 22×20 pt. The scripts in `Tools/Icons/` regenerate both. Custom menu bar icons still work as before.
 - Bundle IDs live in `Configuration.xcconfig` and in the launcher target in the project file. The legacy login-item code in `NSApplication+KYALaunchAtLogin.m` has the launcher ID too. These three must match.
 - `PRODUCT_NAME` is `StayLit` / `StayLit Launcher`. The Xcode project, workspace, targets, schemes and source folders are named StayLit too (`StayLit.xcworkspace`, schemes `StayLit` and `StayLit (Direct)`, sources in `StayLit/`, translations in `Localizations/StayLit/`). Upstream changes still merge, because git follows the renamed paths; edits to `project.pbxproj` may need a hand.
 - Source files that came from KeepingYouAwake keep their original `// KeepingYouAwake` headers (see CONTRIBUTING).
@@ -82,7 +83,6 @@ Upstream's README asks that forks not be redistributed under the same name and i
 **Left unchanged on purpose**
 - **User defaults keys** keep their `info.marcel-dierkes.KeepingYouAwake.*` prefix. They are internal, they live in StayLit's own sandbox container, and xib bindings refer to them. Renaming them means changing every one at once, in the code and in the xibs.
 - **Sparkle feed URLs** follow the GitHub repo name, which is now `ideal2545/StayLit` (`ideal2545.github.io/StayLit/...`). If the repo is renamed again, update `KYAAppUpdater.m` too.
-- **The icon** (`AppIcon.icon`) is still Marcel's original. A new icon is the last step toward fully honoring the README request, and it matters if you publish builds.
 
 **Effects of the new bundle ID**
 - StayLit gets its own sandbox container, so settings start fresh, and the "access data from other apps" prompt goes away.

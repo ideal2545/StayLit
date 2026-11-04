@@ -2,8 +2,6 @@
 
 StayLit is a small menu bar utility for macOS *(version 12 and newer)* that keeps your Mac from going to sleep. It can stay on for a set duration, until a time of day, or for as long as it's switched on.
 
-<img src="./Extras/Screenshot@2x.jpg" width="500" />
-
 ## Installation
 
 StayLit has no published releases yet. Build it from source with Xcode 27.2 (the build command is in [FORK-NOTES.md](FORK-NOTES.md)), then copy `StayLit.app` to `/Applications`.
