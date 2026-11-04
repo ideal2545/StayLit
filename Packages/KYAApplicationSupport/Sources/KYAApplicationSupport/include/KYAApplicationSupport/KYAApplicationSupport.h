@@ -13,3 +13,4 @@
 #import <KYAApplicationSupport/KYADisplayParameters.h>
 #import <KYAApplicationSupport/KYALidSleepController.h>
 #import <KYAApplicationSupport/KYASuspensionTracker.h>
+#import <KYAApplicationSupport/KYAStatusFile.h>

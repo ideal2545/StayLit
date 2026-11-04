@@ -1,0 +1,647 @@
+#!/bin/bash
+#
+# staylit: control StayLit from Terminal, scripts and AI agents.
+#
+# Commands ask for a state ("make sure it's on"), not a flip, so running one
+# twice is harmless. Each waits until StayLit confirms the change. Add --json
+# for machine-readable output. Run `staylit help` for details.
+#
+# Commands go to StayLit through staylit:// links. StayLit's state comes back
+# through a status file: the sandbox hides StayLit's own folders from other
+# apps, so `staylit install` adds a small script that StayLit runs (outside
+# the sandbox) to save its state where this tool can read it.
+
+set -u
+
+VERSION=1
+BUNDLE_ID=com.principia29.StayLit
+SCRIPTS_DIR="$HOME/Library/Application Scripts/$BUNDLE_ID"
+STATUS_FILE="$HOME/Library/Application Support/StayLit/status.json"
+WRITER="$SCRIPTS_DIR/staylit-status.sh"
+WRITER_VERSION=1
+HELPER="$SCRIPTS_DIR/staylit-lid-helper.sh"
+
+EXIT_OK=0
+EXIT_FAILED=1      # the state wasn't reached, or a check failed
+EXIT_USAGE=2
+EXIT_NO_APP=3      # StayLit isn't installed or couldn't be started
+EXIT_TIMEOUT=4     # StayLit didn't confirm in time
+EXIT_NOT_INSTALLED=5  # run `staylit install` first
+
+JSON=0
+
+# ---------------------------------------------------------------- output
+
+json_escape() {
+    local s=$1
+    s=${s//\\/\\\\}
+    s=${s//\"/\\\"}
+    s=${s//$'\n'/\\n}
+    s=${s//$'\t'/\\t}
+    printf '%s' "$s"
+}
+
+# A JSON string, or null when empty.
+json_string() {
+    if [ -z "$1" ]; then printf 'null'; else printf '"%s"' "$(json_escape "$1")"; fi
+}
+
+# A JSON number or boolean, or null when empty.
+json_raw() {
+    if [ -z "$1" ]; then printf 'null'; else printf '%s' "$1"; fi
+}
+
+die() {
+    local code=$1; shift
+    if [ "$JSON" = 1 ]; then
+        printf '{"ok":false,"error":%s}\n' "$(json_string "$*")"
+    else
+        printf 'staylit: %s\n' "$*" >&2
+    fi
+    exit "$code"
+}
+
+iso_date() {
+    [ -n "$1" ] && date -r "$1" '+%Y-%m-%dT%H:%M:%S%z'
+}
+
+human_date() {
+    [ -n "$1" ] && date -r "$1" '+%a %b %-d, %-I:%M %p'
+}
+
+# ---------------------------------------------------------------- the app
+
+find_app() {
+    if [ -n "${STAYLIT_APP:-}" ]; then
+        printf '%s' "$STAYLIT_APP"; return
+    fi
+    # Inside the app bundle (also through a symlink): .../StayLit.app/Contents/Resources/staylit
+    local self dir
+    self=$(readlink -f "$0" 2>/dev/null || printf '%s' "$0")
+    dir=$(cd "$(dirname "$self")/../.." 2>/dev/null && pwd)
+    if [ -n "$dir" ] && [ "${dir##*.}" = app ] && [ -f "$dir/Contents/Info.plist" ]; then
+        printf '%s' "$dir"; return
+    fi
+    if [ -d /Applications/StayLit.app ]; then
+        printf '%s' /Applications/StayLit.app; return
+    fi
+    mdfind "kMDItemCFBundleIdentifier == '$BUNDLE_ID'" 2>/dev/null | head -n 1
+}
+
+APP=""
+require_app() {
+    APP=$(find_app)
+    [ -n "$APP" ] && [ -d "$APP" ] || die $EXIT_NO_APP "StayLit.app not found. Install it in /Applications, or set STAYLIT_APP."
+}
+
+# Opens a staylit:// link in this copy of StayLit, starting it in the background if needed.
+send() {
+    require_app
+    open -g -a "$APP" "staylit:///$1" || die $EXIT_NO_APP "couldn't open StayLit at $APP"
+}
+
+require_install() {
+    [ -x "$WRITER" ] || die $EXIT_NOT_INSTALLED "StayLit can't report its state yet. Run: staylit install"
+}
+
+# ---------------------------------------------------------------- status
+
+# Reads a key from the status file; empty when missing.
+get() {
+    plutil -extract "$1" raw -o - "$STATUS_FILE" 2>/dev/null
+}
+
+# YES when StayLit is running and its status file is its own.
+is_running() {
+    [ -f "$STATUS_FILE" ] || return 1
+    local pid name
+    pid=$(get pid)
+    [ -n "$pid" ] || return 1
+    name=$(ps -p "$pid" -o comm= 2>/dev/null)
+    [ "${name##*/}" = StayLit ]
+}
+
+# Loads the state into S_* variables.
+load() {
+    S_RUNNING=false
+    S_ACTIVE=false; S_PAUSED=false; S_ENDS=""; S_LID=false; S_SETUP=false; S_OWNED=false
+    S_VERSION=""; S_UPDATED=""
+    S_PAUSE_LOCK=false; S_SLEEP_OFF=false; S_BATT_ON=false; S_BATT=""; S_LOWPOWER=false; S_DISPLAY=false
+    is_running || return 0
+    S_RUNNING=true
+    S_VERSION=$(get version)
+    S_UPDATED=$(get updated)
+    S_ACTIVE=$(get active)
+    S_PAUSED=$(get paused)
+    S_ENDS=$(get ends)
+    S_OWNED=$(get lidSleepDisabledByStayLit)
+    S_SETUP=$(get lidClosedSetupInProgress)
+    S_LID=$(get settings.lidClosedMode)
+    S_PAUSE_LOCK=$(get settings.pauseWhileScreenLocked)
+    S_SLEEP_OFF=$(get settings.deactivateOnSleep)
+    S_BATT_ON=$(get settings.batteryThresholdEnabled)
+    S_BATT=$(get settings.batteryThreshold)
+    S_BATT=${S_BATT%%.*}
+    S_LOWPOWER=$(get settings.deactivateOnLowPowerMode)
+    S_DISPLAY=$(get settings.allowDisplaySleep)
+}
+
+# The live system values, read directly.
+system_sleep_disabled() {
+    pmset -g 2>/dev/null | awk '$1 == "SleepDisabled" { print ($2 == "1") ? "true" : "false" }'
+}
+power_source() {
+    pmset -g batt 2>/dev/null | head -n 1 | sed -n "s/.*'\(.*\)'.*/\1/p"
+}
+battery_percent() {
+    pmset -g batt 2>/dev/null | grep -o '[0-9]*%' | head -n 1 | tr -d '%'
+}
+low_power_mode() {
+    pmset -g 2>/dev/null | awk '$1 == "lowpowermode" { print ($2 == "1") ? "true" : "false" }'
+}
+
+state_json() {
+    printf '{"running":%s,"active":%s,"paused":%s,"ends":%s,"endsAt":%s,"lidClosedMode":%s,"lidClosedSetupInProgress":%s,"sleepDisabled":%s,"sleepDisabledByStayLit":%s,"allowDisplaySleep":%s,"version":%s}' \
+        "$S_RUNNING" "$(json_raw "$S_ACTIVE")" "$(json_raw "$S_PAUSED")" \
+        "$(json_raw "$S_ENDS")" "$(json_string "$(iso_date "$S_ENDS")")" \
+        "$(json_raw "$S_LID")" "$(json_raw "$S_SETUP")" \
+        "$(json_raw "$(system_sleep_disabled)")" "$(json_raw "$S_OWNED")" \
+        "$(json_raw "$S_DISPLAY")" "$(json_string "$S_VERSION")"
+}
+
+state_text() {
+    if [ "$S_RUNNING" != true ]; then
+        echo "StayLit is not running."
+    elif [ "$S_ACTIVE" = true ]; then
+        if [ -n "$S_ENDS" ]; then echo "StayLit is on until $(human_date "$S_ENDS")."
+        else echo "StayLit is on indefinitely."; fi
+    elif [ "$S_PAUSED" = true ]; then
+        echo "StayLit is paused (the screen is locked or another user is logged in)."
+    else
+        echo "StayLit is off."
+    fi
+    if [ "$S_RUNNING" = true ]; then
+        if [ "$S_LID" = true ]; then echo "Lid-closed mode: on"; else echo "Lid-closed mode: off"; fi
+    fi
+    if [ "$(system_sleep_disabled)" = true ]; then echo "System sleep (disablesleep): disabled"; fi
+}
+
+# Prints the result of a command and exits.
+finish() {
+    local code=$1 message=$2
+    load
+    if [ "$JSON" = 1 ]; then
+        local ok=true
+        [ "$code" = 0 ] || ok=false
+        printf '{"ok":%s,"message":%s,"state":%s}\n' "$ok" "$(json_string "$message")" "$(state_json)"
+    else
+        [ -n "$message" ] && echo "$message"
+        [ "$code" = 0 ] && state_text
+    fi
+    exit "$code"
+}
+
+# Waits up to $1 seconds for the shell condition in $2 (evaluated after load).
+wait_for() {
+    local timeout=$1 condition=$2 i=0 steps
+    steps=$((timeout * 5))
+    while [ $i -lt $steps ]; do
+        load
+        if eval "$condition"; then return 0; fi
+        sleep 0.2
+        i=$((i + 1))
+    done
+    return 1
+}
+
+# ---------------------------------------------------------------- durations
+
+# Seconds for 90s, 45m, 2h, 1h30m, or a plain number of minutes.
+parse_duration() {
+    local input=$1 total=0 number unit rest
+    case "$input" in
+        indefinitely|forever|0) echo 0; return 0 ;;
+        *[!0-9hms]*|'') return 1 ;;
+    esac
+    if [[ "$input" =~ ^[0-9]+$ ]]; then echo $((input * 60)); return 0; fi
+    rest=$input
+    while [ -n "$rest" ]; do
+        [[ "$rest" =~ ^([0-9]+)([hms])(.*)$ ]] || return 1
+        number=${BASH_REMATCH[1]}; unit=${BASH_REMATCH[2]}; rest=${BASH_REMATCH[3]}
+        case $unit in
+            h) total=$((total + number * 3600)) ;;
+            m) total=$((total + number * 60)) ;;
+            s) total=$((total + number)) ;;
+        esac
+    done
+    [ $total -gt 0 ] || return 1
+    echo $total
+}
+
+valid_until() {
+    [[ "$1" =~ ^[0-9]{1,2}:[0-9]{2}$ ]] || [[ "$1" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{1,2}:[0-9]{2}$ ]]
+}
+
+# ---------------------------------------------------------------- commands
+
+cmd_status() {
+    [ $# -eq 0 ] || die $EXIT_USAGE "status takes no arguments"
+    require_install
+    load
+    if [ "$JSON" = 1 ]; then
+        printf '{"ok":true,"state":%s}\n' "$(state_json)"
+    else
+        state_text
+    fi
+    exit $EXIT_OK
+}
+
+cmd_on() {
+    local seconds="" until=""
+    while [ $# -gt 0 ]; do
+        case $1 in
+            --for) [ $# -ge 2 ] || die $EXIT_USAGE "--for needs a duration, e.g. 2h"
+                   seconds=$(parse_duration "$2") || die $EXIT_USAGE "invalid duration: $2 (use e.g. 90s, 45m, 2h, 1h30m)"
+                   shift 2 ;;
+            --indefinitely) seconds=0; shift ;;
+            --until) [ $# -ge 2 ] || die $EXIT_USAGE "--until needs a time, e.g. 17:00"
+                     valid_until "$2" || die $EXIT_USAGE "invalid time: $2 (use HH:MM or YYYY-MM-DDTHH:MM)"
+                     until=$2; shift 2 ;;
+            *) die $EXIT_USAGE "unknown option for on: $1" ;;
+        esac
+    done
+    [ -z "$seconds" ] || [ -z "$until" ] || die $EXIT_USAGE "use either --for/--indefinitely or --until"
+    require_install
+
+    load
+    if [ -z "$seconds" ] && [ -z "$until" ] && [ "$S_ACTIVE" = true ]; then
+        finish $EXIT_OK "Already on; left as it is."
+    fi
+
+    local previous_ends=$S_ENDS was_active=$S_ACTIVE condition
+    if [ -n "$until" ]; then
+        send "activate?until=$until"
+        condition='[ "$S_ACTIVE" = true ] && { [ "$was_active" != true ] || [ "$S_ENDS" != "$previous_ends" ]; }'
+    elif [ -n "$seconds" ]; then
+        send "activate?seconds=$seconds"
+        if [ "$seconds" = 0 ]; then
+            condition='[ "$S_ACTIVE" = true ] && [ -z "$S_ENDS" ]'
+        else
+            local target=$(( $(date +%s) + seconds ))
+            condition='[ "$S_ACTIVE" = true ] && [ -n "$S_ENDS" ] && [ $((S_ENDS - target)) -ge -5 ] && [ $((S_ENDS - target)) -le 5 ]'
+        fi
+    else
+        send "activate"
+        condition='[ "$S_ACTIVE" = true ]'
+    fi
+
+    wait_for 15 "$condition" || {
+        load
+        if [ "$S_RUNNING" != true ]; then finish $EXIT_TIMEOUT "StayLit didn't start in time."; fi
+        if [ -n "$until" ]; then finish $EXIT_FAILED "StayLit ignored the time; it must be in the future."; fi
+        finish $EXIT_TIMEOUT "StayLit didn't confirm in time."
+    }
+    finish $EXIT_OK "Turned on."
+}
+
+cmd_off() {
+    [ $# -eq 0 ] || die $EXIT_USAGE "off takes no arguments"
+    require_install
+    load
+    if [ "$S_RUNNING" != true ]; then finish $EXIT_OK "StayLit isn't running, so it isn't keeping the Mac awake."; fi
+    if [ "$S_ACTIVE" != true ] && [ "$S_PAUSED" != true ]; then finish $EXIT_OK "Already off."; fi
+    send "deactivate"
+    wait_for 15 '[ "$S_RUNNING" != true ] || { [ "$S_ACTIVE" != true ] && [ "$S_PAUSED" != true ]; }' \
+        || finish $EXIT_TIMEOUT "StayLit didn't confirm in time."
+    finish $EXIT_OK "Turned off."
+}
+
+cmd_lid() {
+    [ $# -eq 1 ] || die $EXIT_USAGE "usage: staylit lid on|off"
+    require_install
+    load
+    case $1 in
+        on)
+            if [ "$S_RUNNING" = true ] && [ "$S_LID" = true ] && [ "$S_SETUP" != true ]; then
+                finish $EXIT_OK "Lid-closed mode is already on."
+            fi
+            send "lid-closed?enabled=1"
+            [ "$JSON" = 1 ] || echo "StayLit is asking for confirmation on screen (and the first time, for an administrator password)..."
+            # A person has to click through the setup, so allow plenty of time.
+            local seen_setup=0 i=0
+            while [ $i -lt 1500 ]; do
+                load
+                if [ "$S_RUNNING" = true ]; then
+                    if [ "$S_SETUP" = true ]; then seen_setup=1
+                    elif [ "$S_LID" = true ]; then finish $EXIT_OK "Lid-closed mode is on."
+                    elif [ $seen_setup = 1 ]; then finish $EXIT_FAILED "The setup was cancelled or failed, so lid-closed mode is off."
+                    fi
+                fi
+                sleep 0.2
+                i=$((i + 1))
+            done
+            finish $EXIT_TIMEOUT "The setup wasn't finished in time."
+            ;;
+        off)
+            if [ "$S_RUNNING" = true ] && [ "$S_LID" != true ]; then
+                finish $EXIT_OK "Lid-closed mode is already off."
+            fi
+            send "lid-closed?enabled=0"
+            wait_for 15 '[ "$S_RUNNING" = true ] && [ "$S_LID" != true ]' || finish $EXIT_TIMEOUT "StayLit didn't confirm in time."
+            finish $EXIT_OK "Lid-closed mode is off."
+            ;;
+        *) die $EXIT_USAGE "usage: staylit lid on|off" ;;
+    esac
+}
+
+# ---------------------------------------------------------------- check lid
+
+CHECKS=""
+CHECK_FAILED=0
+CHECK_TEXT=""
+
+# add_check name level(ok|warn|fail) detail fix
+add_check() {
+    local item
+    item=$(printf '{"name":"%s","status":"%s","detail":%s,"fix":%s}' "$1" "$2" "$(json_string "$3")" "$(json_string "$4")")
+    if [ -z "$CHECKS" ]; then CHECKS=$item; else CHECKS="$CHECKS,$item"; fi
+    [ "$2" = fail ] && CHECK_FAILED=1
+    local mark="ok  "
+    [ "$2" = warn ] && mark="warn"
+    [ "$2" = fail ] && mark="FAIL"
+    CHECK_TEXT="$CHECK_TEXT$mark  $3"$'\n'
+    [ -n "$4" ] && [ "$2" != ok ] && CHECK_TEXT="$CHECK_TEXT      fix: $4"$'\n'
+}
+
+cmd_check() {
+    [ $# -ge 1 ] && [ "$1" = lid ] || die $EXIT_USAGE "usage: staylit check lid [--for DURATION]"
+    shift
+    local need="" need_text=""
+    while [ $# -gt 0 ]; do
+        case $1 in
+            --for) [ $# -ge 2 ] || die $EXIT_USAGE "--for needs a duration"
+                   need=$(parse_duration "$2") || die $EXIT_USAGE "invalid duration: $2"
+                   need_text=$2
+                   shift 2 ;;
+            *) die $EXIT_USAGE "unknown option for check lid: $1" ;;
+        esac
+    done
+    require_install
+
+    load
+    local now; now=$(date +%s)
+
+    # 1. Running and on
+    if [ "$S_RUNNING" != true ]; then
+        add_check running fail "StayLit is not running." "staylit on"
+    elif [ "$S_ACTIVE" = true ]; then
+        add_check active ok "StayLit is on." ""
+    elif [ "$S_PAUSED" = true ]; then
+        add_check active fail "StayLit is paused (screen locked or another user logged in)." "staylit on"
+    else
+        add_check active fail "StayLit is off." "staylit on"
+    fi
+
+    # 2. Long enough
+    if [ "$S_ACTIVE" = true ]; then
+        if [ -z "$S_ENDS" ]; then
+            add_check duration ok "It stays on until turned off." ""
+        else
+            local left=$((S_ENDS - now))
+            if [ -n "$need" ] && [ "$need" != 0 ] && [ $left -lt "$need" ]; then
+                add_check duration fail "It turns off at $(human_date "$S_ENDS"), sooner than needed." "staylit on --for $need_text"
+            elif [ -n "$need" ] && [ "$need" = 0 ]; then
+                add_check duration fail "It turns off at $(human_date "$S_ENDS")." "staylit on --indefinitely"
+            elif [ $left -lt 1800 ]; then
+                add_check duration warn "It turns off soon, at $(human_date "$S_ENDS")." "staylit on --for 2h"
+            else
+                add_check duration ok "It stays on until $(human_date "$S_ENDS")." ""
+            fi
+        fi
+    fi
+
+    # 3. Lid-closed mode and its helper
+    local sleep_disabled; sleep_disabled=$(system_sleep_disabled)
+    if [ "$S_RUNNING" = true ] && [ "$S_SETUP" = true ]; then
+        add_check lidClosedMode fail "The lid-closed setup is waiting on screen." "Finish the StayLit setup dialog."
+    elif [ "$S_RUNNING" = true ] && [ "$S_LID" = true ]; then
+        add_check lidClosedMode ok "Lid-closed mode is on." ""
+        if [ ! -x "$HELPER" ]; then
+            [ "$sleep_disabled" = true ] \
+                && add_check helper warn "The lid-closed helper is missing; it's only working because disablesleep is already on." "staylit lid off; staylit lid on" \
+                || add_check helper fail "The lid-closed helper is missing." "staylit lid off; staylit lid on"
+        elif ! sudo -n -l /usr/bin/pmset -a disablesleep 1 >/dev/null 2>&1; then
+            [ "$sleep_disabled" = true ] \
+                && add_check helper warn "The helper can't change the sleep setting; it's only working because disablesleep is already on." "staylit lid off; staylit lid on" \
+                || add_check helper fail "The helper isn't allowed to change the sleep setting." "staylit lid off; staylit lid on"
+        else
+            add_check helper ok "The lid-closed helper is installed and allowed." ""
+        fi
+    elif [ "$sleep_disabled" = true ]; then
+        add_check lidClosedMode warn "Lid-closed mode is off, but sleep is already disabled system-wide, so the Mac stays awake anyway." "staylit lid on"
+    else
+        add_check lidClosedMode fail "Lid-closed mode is off." "staylit lid on"
+    fi
+
+    # 4. The setting that actually keeps a closed Mac awake
+    if [ "$sleep_disabled" = true ]; then
+        add_check sleepDisabled ok "System sleep is disabled (disablesleep is on)." ""
+    elif [ -z "$sleep_disabled" ]; then
+        add_check sleepDisabled fail "Couldn't read the disablesleep setting." ""
+    else
+        add_check sleepDisabled fail "System sleep is still enabled, so closing the lid will sleep the Mac." "staylit on (with lid-closed mode on)"
+    fi
+
+    # 5. Settings that undo it when the lid closes
+    if [ "$S_PAUSE_LOCK" = true ]; then
+        add_check pauseWhileScreenLocked fail "\"Pause while the screen is locked\" is on. Closing the lid usually locks the screen, which pauses StayLit and turns sleep back on." "Turn off Settings > Advanced > Pause while the screen is locked."
+    fi
+
+    # 6. Power
+    local source percent lowpower
+    source=$(power_source); percent=$(battery_percent); lowpower=$(low_power_mode)
+    if [ "$source" = "Battery Power" ]; then
+        if [ "$S_BATT_ON" = true ] && [ -n "$percent" ] && [ -n "$S_BATT" ] && [ "$percent" -le "$S_BATT" ]; then
+            add_check power fail "On battery at $percent%, at or below the $S_BATT% cutoff, so StayLit turns off." "Plug in, or lower the cutoff in Settings > Battery."
+        elif [ "$S_BATT_ON" = true ] && [ -n "$percent" ] && [ -n "$S_BATT" ]; then
+            add_check power warn "On battery at $percent%. StayLit turns off at $S_BATT%." "Plug in for long sessions."
+        else
+            add_check power warn "On battery${percent:+ at $percent%}, with no cutoff: it runs until the battery is empty." "Plug in for long sessions."
+        fi
+        if [ "$lowpower" = true ] && [ "$S_LOWPOWER" = true ]; then
+            add_check lowPowerMode fail "Low Power Mode is on, and StayLit turns off in Low Power Mode." "Turn off Low Power Mode, or the setting in Settings > Battery."
+        fi
+    elif [ -n "$source" ]; then
+        add_check power ok "On $source." ""
+    fi
+
+    load
+    if [ "$JSON" = 1 ]; then
+        local ok=true; [ $CHECK_FAILED = 0 ] || ok=false
+        printf '{"ok":%s,"readyForLidClose":%s,"checks":[%s],"state":%s}\n' "$ok" "$ok" "$CHECKS" "$(state_json)"
+    else
+        printf '%s' "$CHECK_TEXT"
+        if [ $CHECK_FAILED = 0 ]; then echo "Ready: the Mac will stay awake with the lid closed."
+        else echo "Not ready: fix the FAIL items above."; fi
+    fi
+    [ $CHECK_FAILED = 0 ] && exit $EXIT_OK
+    exit $EXIT_FAILED
+}
+
+# ---------------------------------------------------------------- install
+
+writer_script() {
+    local file
+    file=$(printf '%s' "$STATUS_FILE" | sed "s/'/'\\\\''/g")
+    cat <<WRITER_EOF
+#!/bin/sh
+# StayLit status writer, version $WRITER_VERSION
+#
+# Installed by "staylit install". StayLit runs this script to save its state
+# where the staylit command can read it; StayLit's own folders are hidden from
+# other apps. It only writes the one file below.
+#
+# To remove: staylit uninstall (or delete this file).
+
+FILE='$file'
+
+case "\$1" in
+  version)
+    echo $WRITER_VERSION
+    ;;
+  write)
+    dir=\$(/usr/bin/dirname "\$FILE")
+    /bin/mkdir -p "\$dir" || exit 1
+    tmp=\$(/usr/bin/mktemp "\$dir/.status.XXXXXX") || exit 1
+    printf '%s\\n' "\$2" > "\$tmp" && /bin/mv -f "\$tmp" "\$FILE"
+    ;;
+  *)
+    exit 64
+    ;;
+esac
+WRITER_EOF
+}
+
+default_bin_dir() {
+    if [ -d /usr/local/bin ] && [ -w /usr/local/bin ]; then echo /usr/local/bin
+    else echo "$HOME/.local/bin"; fi
+}
+
+cmd_install() {
+    local bin="" self
+    while [ $# -gt 0 ]; do
+        case $1 in
+            --bin) [ $# -ge 2 ] || die $EXIT_USAGE "--bin needs a folder"; bin=$2; shift 2 ;;
+            *) die $EXIT_USAGE "unknown option for install: $1" ;;
+        esac
+    done
+    [ -n "$bin" ] || bin=$(default_bin_dir)
+    self=$(readlink -f "$0" 2>/dev/null || printf '%s' "$0")
+
+    mkdir -p "$SCRIPTS_DIR" || die $EXIT_FAILED "couldn't create $SCRIPTS_DIR"
+    writer_script > "$WRITER.tmp" && chmod 755 "$WRITER.tmp" && mv -f "$WRITER.tmp" "$WRITER" \
+        || die $EXIT_FAILED "couldn't write $WRITER"
+
+    local link="$bin/staylit" linked=false
+    if [ "$link" != "$self" ]; then
+        mkdir -p "$bin" 2>/dev/null
+        if ln -sf "$self" "$link" 2>/dev/null; then linked=true; fi
+    else
+        linked=true
+    fi
+
+    # Ask a running StayLit to write its state right away.
+    if pgrep -x StayLit >/dev/null 2>&1; then
+        APP=$(find_app)
+        [ -n "$APP" ] && open -g -a "$APP" "staylit:///status" 2>/dev/null
+    fi
+
+    local in_path=false
+    case ":$PATH:" in *":$bin:"*) in_path=true ;; esac
+
+    if [ "$JSON" = 1 ]; then
+        printf '{"ok":true,"statusWriter":%s,"command":%s,"linked":%s,"inPath":%s}\n' \
+            "$(json_string "$WRITER")" "$(json_string "$link")" "$linked" "$in_path"
+    else
+        echo "Installed the status writer: $WRITER"
+        if [ "$linked" = true ]; then echo "Linked the command: $link -> $self"
+        else echo "Couldn't link $link. Run: sudo ln -sf '$self' '$link'  (or use --bin ~/.local/bin)"; fi
+        [ "$in_path" = true ] || echo "Add $bin to your PATH, e.g.: echo 'export PATH=\"$bin:\$PATH\"' >> ~/.zshrc"
+    fi
+    exit $EXIT_OK
+}
+
+cmd_uninstall() {
+    local self dir link
+    self=$(readlink -f "$0" 2>/dev/null || printf '%s' "$0")
+    for dir in /usr/local/bin "$HOME/.local/bin" /opt/homebrew/bin; do
+        link="$dir/staylit"
+        if [ -L "$link" ] && [ "$(readlink -f "$link")" = "$self" ]; then rm -f "$link"; fi
+    done
+    rm -f "$WRITER" "$STATUS_FILE"
+    if [ "$JSON" = 1 ]; then printf '{"ok":true}\n'; else echo "Removed the status writer, the status file and the command link."; fi
+    exit $EXIT_OK
+}
+
+# ---------------------------------------------------------------- help
+
+cmd_help() {
+    cat <<'EOF'
+staylit: control StayLit from Terminal, scripts and AI agents
+
+Usage: staylit [--json] <command>
+
+Commands
+  status                      Show whether StayLit is on, until when, and lid-closed mode
+  on                          Make sure StayLit is on (left as is if already on)
+  on --for 2h                 On for a duration: 90s, 45m, 2h, 1h30m, or minutes
+  on --until 17:00            On until a time today or tomorrow, or YYYY-MM-DDTHH:MM
+  on --indefinitely           On until turned off
+  off                         Make sure StayLit is off
+  lid on                      Turn on lid-closed mode (asks on screen; the first time, for a password)
+  lid off                     Turn off lid-closed mode
+  check lid [--for 2h]        Will the Mac stay awake with the lid closed? Lists what to fix
+  install [--bin DIR]         Set up this tool once: lets StayLit report its state, links staylit into DIR
+  uninstall                   Undo install
+  help                        Show this help
+
+Options
+  --json                      Print one JSON object instead of text
+
+Exit codes
+  0 done or ready   1 not reached or check failed   2 usage error
+  3 StayLit not found or couldn't start   4 StayLit didn't confirm in time
+  5 not set up yet: run `staylit install`
+
+Every command waits until StayLit confirms. StayLit only stops its own
+caffeinate; other caffeinate processes are never touched.
+EOF
+    exit $EXIT_OK
+}
+
+# ---------------------------------------------------------------- main
+
+ARGS=()
+for arg in "$@"; do
+    case $arg in
+        --json) JSON=1 ;;
+        --version) echo "staylit $VERSION"; exit 0 ;;
+        -h|--help) cmd_help ;;
+        *) ARGS+=("$arg") ;;
+    esac
+done
+set -- ${ARGS[@]+"${ARGS[@]}"}
+
+[ $# -ge 1 ] || cmd_help
+command=$1; shift
+case $command in
+    status) cmd_status "$@" ;;
+    on) cmd_on "$@" ;;
+    off) cmd_off "$@" ;;
+    lid) cmd_lid "$@" ;;
+    check) cmd_check "$@" ;;
+    install) cmd_install "$@" ;;
+    uninstall) cmd_uninstall "$@" ;;
+    help) cmd_help ;;
+    *) die $EXIT_USAGE "unknown command: $command (try: staylit help)" ;;
+esac

@@ -8,6 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		DA085D1021D6BAB6003D9B1B /* container-migration.plist in Resources */ = {isa = PBXBuildFile; fileRef = DA085D0F21D6BAB6003D9B1B /* container-migration.plist */; };
+		5A11C11000000000000000B1 /* staylit in Resources */ = {isa = PBXBuildFile; fileRef = 5A11C11000000000000000A1 /* staylit */; };
+		5A11C11000000000000000B2 /* staylit in Resources */ = {isa = PBXBuildFile; fileRef = 5A11C11000000000000000A1 /* staylit */; };
 		DA13771A25E969FF00FB0FAD /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = DA13771925E969FF00FB0FAD /* Assets.xcassets */; };
 		DA25063027C2486D0052CCD8 /* KYADeviceInfo in Frameworks */ = {isa = PBXBuildFile; productRef = DA25062F27C2486D0052CCD8 /* KYADeviceInfo */; };
 		DA25063227C248710052CCD8 /* KYADeviceInfo in Frameworks */ = {isa = PBXBuildFile; productRef = DA25063127C248710052CCD8 /* KYADeviceInfo */; };
@@ -170,6 +172,7 @@
 
 /* Begin PBXFileReference section */
 		DA085D0F21D6BAB6003D9B1B /* container-migration.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "container-migration.plist"; sourceTree = "<group>"; };
+		5A11C11000000000000000A1 /* staylit */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.sh; name = staylit; path = CLI/staylit; sourceTree = "<group>"; };
 		DA0CA9FE21D0111600879C8B /* StayLit.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = StayLit.entitlements; sourceTree = "<group>"; };
 		DA13771925E969FF00FB0FAD /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		DA2C0E322700629A006E9991 /* KYAAppUpdater.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = KYAAppUpdater.h; sourceTree = "<group>"; };
@@ -530,6 +533,7 @@
 				DA13771925E969FF00FB0FAD /* Assets.xcassets */,
 				DAE9C00D26107E1A00F9ED76 /* Configuration.xcconfig */,
 				DA085D0F21D6BAB6003D9B1B /* container-migration.plist */,
+				5A11C11000000000000000A1 /* staylit */,
 				DA898C6E2A3EEE460005A48A /* Credits.rtf */,
 				DA637B3D19F14693004C8838 /* Info.plist */,
 				DAD90B5627B001B800F5C186 /* StayLit-Direct.entitlements */,
@@ -711,6 +715,7 @@
 				DA898C6F2A3EEE460005A48A /* Credits.rtf in Resources */,
 				DAD9834926F8A9AE00234FB8 /* KYAAboutSettingsViewController.xib in Resources */,
 				DA085D1021D6BAB6003D9B1B /* container-migration.plist in Resources */,
+				5A11C11000000000000000B1 /* staylit in Resources */,
 				DAD983A726F9C46600234FB8 /* KYAAddDurationViewController.xib in Resources */,
 				DA13771A25E969FF00FB0FAD /* Assets.xcassets in Resources */,
 				DA96767F27CA720E00A9DCB8 /* KYABatterySettingsViewController.xib in Resources */,
@@ -742,6 +747,7 @@
 				DA898C702A3EEE460005A48A /* Credits.rtf in Resources */,
 				DAD3CF78271186720006CA14 /* KYAAboutSettingsViewController.xib in Resources */,
 				DAD3CF7A271186720006CA14 /* container-migration.plist in Resources */,
+				5A11C11000000000000000B2 /* staylit in Resources */,
 				DAD3CF7B271186720006CA14 /* KYAAddDurationViewController.xib in Resources */,
 				DAD3CF7C271186720006CA14 /* Assets.xcassets in Resources */,
 				DA96768027CA720E00A9DCB8 /* KYABatterySettingsViewController.xib in Resources */,

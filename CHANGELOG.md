@@ -17,6 +17,11 @@ The first version of StayLit, a fork of [KeepingYouAwake](https://github.com/new
 	- add one in _Settings > Activation Duration > +_ by switching the sheet from _Duration_ to _Until_, and set it as the default like any other duration
 	- _Activate for Duration > Until…_ keeps the Mac awake until a one-off date and time without saving a preset
 	- `staylit:///activate?until=17:00` and `until=2026-10-03T17:00`
+- **`staylit` command line tool** for Terminal, scripts and AI agents ([#225](https://github.com/newmarcel/KeepingYouAwake/issues/225))
+	- `status`, `on` (with `--for`, `--until` or `--indefinitely`), `off`, `lid on|off` and `check lid`, which checks that the Mac will stay awake with the lid closed and says what to fix
+	- commands ask for a state, so repeating one is harmless; each waits for StayLit to confirm, and `--json` gives machine-readable output with clear exit codes
+	- set up once with `staylit install`; includes a skill file for AI agents
+	- new `staylit:///lid-closed?enabled=1|0` and `staylit:///status` links
 - **Keyboard shortcut** that turns StayLit on or off from any app, set in _Settings > General_ ([#190](https://github.com/newmarcel/KeepingYouAwake/issues/190))
 - **Pause while the screen is locked** and **Deactivate when the Mac goes to sleep**, in _Settings > Advanced_ ([#93](https://github.com/newmarcel/KeepingYouAwake/issues/93), [#98](https://github.com/newmarcel/KeepingYouAwake/issues/98), [#108](https://github.com/newmarcel/KeepingYouAwake/issues/108))
 	- a paused activation resumes with its remaining time or end time, and _Deactivate when switched to another user account_ now pauses and resumes the same way
