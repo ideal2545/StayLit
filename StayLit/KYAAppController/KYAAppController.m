@@ -68,6 +68,10 @@ static NSString * const KYALidSleepLeaveDisabledActionIdentifier = @"KYALidSleep
 
 // Menu
 @property (nonatomic) NSMenu *menu;
+
+// Status file for the command line tool
+@property (nonatomic, nullable) KYAStatusFile *statusFile;
+@property (nonatomic, getter=isStatusUpdateScheduled) BOOL statusUpdateScheduled;
 @end
 
 @implementation KYAAppController
@@ -116,6 +120,9 @@ static NSString * const KYALidSleepLeaveDisabledActionIdentifier = @"KYALidSleep
         self.suspensionTracker = [KYASuspensionTracker new];
         self.workspaceScheduledTimeInterval = -1;
         [self registerForWorkspaceSessionNotifications];
+
+        self.statusFile = [KYAStatusFile new];
+        [self setNeedsStatusUpdate];
     }
     return self;
 }
@@ -137,6 +144,41 @@ static NSString * const KYALidSleepLeaveDisabledActionIdentifier = @"KYALidSleep
     // The timer's deactivation callback doesn't run during termination,
     // so restore the sleep setting here and wait for it.
     [self.lidSleepController restoreSynchronouslyWithTimeout:10.0];
+
+    // The command line tool tells a quit app by its process ID, so a
+    // last write isn't needed; just let a pending one finish.
+    self.statusUpdateScheduled = YES;
+    [self.statusFile waitUntilWrittenWithTimeout:1.0];
+}
+
+#pragma mark - Status File
+
+/// Writes the status file on the next pass of the main queue, so several
+/// changes in a row (and the timer setting its fire date) end up in one write.
+- (void)setNeedsStatusUpdate
+{
+    if(self.statusFile == nil || self.isStatusUpdateScheduled) { return; }
+    self.statusUpdateScheduled = YES;
+
+    AutoWeak weakSelf = self;
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [weakSelf writeStatus];
+    });
+}
+
+- (void)writeStatus
+{
+    self.statusUpdateScheduled = NO;
+
+    Auto status = [KYAStatus new];
+    status.active = [self.sleepWakeTimer isScheduled];
+    status.endDate = self.sleepWakeTimer.fireDate;
+    status.paused = self.suspensionTracker.isSuspended;
+    status.lidClosedSetupInProgress = self.isSettingUpLidSleep;
+    status.batteryCutoffIgnored = status.active && self.isBatteryOverrideEnabled;
+    [self.statusFile writeStatus:status
+                        defaults:NSUserDefaults.standardUserDefaults
+                         version:NSBundle.mainBundle.kya_shortVersionString];
 }
 
 #pragma mark - Main Menu
@@ -342,6 +384,7 @@ static NSString * const KYALidSleepLeaveDisabledActionIdentifier = @"KYALidSleep
 
 - (void)checkAndEnableBatteryOverride
 {
+    [self setNeedsStatusUpdate];
     Auto batteryMonitor = KYADevice.currentDevice.batteryMonitor;
     CGFloat currentCapacity = batteryMonitor.currentCapacity;
     CGFloat threshold = NSUserDefaults.standardUserDefaults.kya_batteryCapacityThreshold;
@@ -451,6 +494,7 @@ static NSString * const KYALidSleepLeaveDisabledActionIdentifier = @"KYALidSleep
 - (void)applyChangedUserDefaultsIfNeeded
 {
     Auto defaults = NSUserDefaults.standardUserDefaults;
+    [self setNeedsStatusUpdate];
     
     BOOL allowDisplaySleep = [defaults kya_shouldAllowDisplaySleep];
     if(allowDisplaySleep != self.lastAllowDisplaySleep)
@@ -521,6 +565,10 @@ static NSString * const KYALidSleepLeaveDisabledActionIdentifier = @"KYALidSleep
 - (void)setUpKeepAwakeWithLidClosed
 {
     self.settingUpLidSleep = YES;
+    // Write now: this usually runs inside a main queue block, and the setup's
+    // dialogs keep that block running, so a queued write would only happen
+    // after the setup is over.
+    [self writeStatus];
     
     Auto defaults = NSUserDefaults.standardUserDefaults;
     BOOL ready = [self runLidSleepSetup];
@@ -531,6 +579,7 @@ static NSString * const KYALidSleepLeaveDisabledActionIdentifier = @"KYALidSleep
     }
     self.lastKeepAwakeWithLidClosed = [defaults kya_isKeepAwakeWithLidClosedEnabled];
     self.settingUpLidSleep = NO;
+    [self setNeedsStatusUpdate];
     
     if(ready && [self.lidSleepRunner currentSleepDisabledState] == KYASleepDisabledStateOn)
     {
@@ -907,6 +956,7 @@ static NSString * const KYAScreenIsUnlockedNotification = @"com.apple.screenIsUn
 
 - (void)discardSuspendedActivation
 {
+    [self setNeedsStatusUpdate];
     [self.suspensionTracker reset];
     self.workspaceScheduledTimeInterval = -1;
     self.workspaceActivationDuration = nil;
@@ -978,6 +1028,38 @@ static NSString * const KYAScreenIsUnlockedNotification = @"com.apple.screenIsUn
         // Not a user action: URLs usually come from scripts, so they still notify.
         [weakSelf toggleActivation];
     }];
+
+    // Writes the status file now, e.g. right after `staylit install`.
+    [eventHandler registerActionNamed:@"status" block:^(KYAEvent *event) {
+        [weakSelf setNeedsStatusUpdate];
+    }];
+
+    [eventHandler registerActionNamed:@"lid-closed" block:^(KYAEvent *event) {
+        [weakSelf handleLidClosedActionForEvent:event];
+    }];
+}
+
+/// `staylit:///lid-closed?enabled=1` turns on "Keep awake when the lid is
+/// closed", and `enabled=0` turns it off. Turning it on always goes through
+/// the setup, which asks the user to confirm, so a link can't do it silently.
+- (void)handleLidClosedActionForEvent:(KYAEvent *)event
+{
+    NSString *value = event.arguments[@"enabled"];
+    if(value == nil) { return; }
+
+    Auto lowercase = value.lowercaseString;
+    BOOL enable;
+    if([@[@"1", @"true", @"yes", @"on"] containsObject:lowercase]) { enable = YES; }
+    else if([@[@"0", @"false", @"no", @"off"] containsObject:lowercase]) { enable = NO; }
+    else { return; }
+
+    Auto defaults = NSUserDefaults.standardUserDefaults;
+    if(self.isSettingUpLidSleep || [defaults kya_isKeepAwakeWithLidClosedEnabled] == enable)
+    {
+        return;
+    }
+    // The defaults observer runs the setup or the restore.
+    defaults.kya_keepAwakeWithLidClosedEnabled = enable;
 }
 
 - (void)handleActivateActionForEvent:(KYAEvent *)event
@@ -1214,6 +1296,7 @@ static KYAActivationDuration * _Nullable KYAClockTimeDurationFromURLTimeString(N
     // Update the status item
     self.statusItemController.appearance = KYAStatusItemAppearanceActive;
     self.postedDeactivationNotification = NO;
+    [self setNeedsStatusUpdate];
     
     [self enableDevicePowerMonitoring];
     // While setup is open, it decides at the end.
@@ -1227,6 +1310,7 @@ static KYAActivationDuration * _Nullable KYAClockTimeDurationFromURLTimeString(N
 {
     // Update the status item
     self.statusItemController.appearance = KYAStatusItemAppearanceInactive;
+    [self setNeedsStatusUpdate];
     
     [self disableDevicePowerMonitoring];
     [self.lidSleepController activationDidEnd];

@@ -12,7 +12,7 @@ StayLit runs on macOS 12 and newer and is built for macOS 27. It's a fork of [Ke
 - **Keyboard shortcut:** turn StayLit on or off from any app.
 - **Battery aware:** turns off below a battery level you choose, or when Low Power Mode turns on.
 - **Smart pauses:** optionally pauses while the screen is locked or while another user is logged in, and resumes where it left off. It can also turn off when you put the Mac to sleep.
-- **Automation:** control it from scripts, Shortcuts or Terminal with `staylit://` links.
+- **Command line and AI agents:** a `staylit` command with JSON output and a "can I close the lid?" check, plus `staylit://` links for scripts and Shortcuts.
 - **Quiet notifications:** optionally only tells you when StayLit turns on or off by itself, not when you clicked it.
 - **Display sleep:** let the display sleep while the Mac stays awake, from the menu or in Settings.
 - **More options:** turns on when an external display is connected, starts at login, activates on launch, quits when the timer ends, and supports custom menu bar icons.
@@ -62,6 +62,20 @@ Normally a MacBook sleeps when you close the lid, unless it's on power with an e
 - **Crash-safe:** if StayLit quits unexpectedly with sleep disabled, it turns sleep back on at its next launch and tells you.
 - **Battery settings still apply,** so a closed Mac on battery still stops at your cutoff. A closed laptop in a bag can get warm.
 - **To remove it:** turn the setting off, then delete `~/Library/Application Scripts/com.principia29.StayLit/staylit-lid-helper.sh` and `/etc/sudoers.d/staylit`.
+
+## Command line and AI agents
+
+StayLit includes a `staylit` command for Terminal, scripts and AI agents. Set it up once with `/Applications/StayLit.app/Contents/Resources/staylit install`, then:
+
+```sh
+staylit status              # on or off, until when, lid-closed mode
+staylit on --for 2h         # makes sure it's on; also --until 17:00, --indefinitely
+staylit off
+staylit check lid           # will the Mac stay awake with the lid closed? lists what to fix
+staylit --json status       # every command can print JSON
+```
+
+Commands ask for a state rather than flipping it, so running one twice is harmless, and each waits until StayLit confirms. You can tell an agent "I'm closing my laptop, make sure StayLit is ready", and it can run `staylit on` and `staylit check lid` and fix whatever is reported. A [skill file](Documentation/staylit-skill/SKILL.md) teaches agents the commands. Details are in [Automation](Documentation/Automation.md#the-staylit-command).
 
 ## Automation
 
