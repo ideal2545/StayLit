@@ -1,9 +1,9 @@
 # Using Custom Icons
 
-KeepingYouAwake 1.2.2beta2 and newer allows the use of custom icons.
+StayLit can use custom menu bar icons.
 
 ## Usage
 
-Just place four images named `ActiveIcon.png`, `ActiveIcon@2x.png`, `InactiveIcon.png`, `InactiveIcon@2x.png` in your `~/Library/Containers/info.marcel-dierkes.KeepingYouAwake/Data/Documents` folder. The optimal size for these images is 22x20 points.
+Place four images named `ActiveIcon.png`, `ActiveIcon@2x.png`, `InactiveIcon.png` and `InactiveIcon@2x.png` in your `~/Library/Containers/com.principia29.StayLit/Data/Documents` folder. The best size for these images is 22x20 points.
 
-> Older versions (< 1.5.0) without App Sandbox support require the icons to be located in `~/Library/Application Support/KeepingYouAwake/`.
+> Coming from KeepingYouAwake? Its icons are in `~/Library/Containers/info.marcel-dierkes.KeepingYouAwake/Data/Documents`. Copy them into StayLit's folder above.

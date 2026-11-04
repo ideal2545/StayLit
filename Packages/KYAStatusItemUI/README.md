@@ -1,3 +1,3 @@
 # KYAStatusItemUI
 
-The status item UI for KeepingYouAwake.
+The status item UI for StayLit.

@@ -1,6 +1,6 @@
 # Fork Notes
 
-This is a fork of [newmarcel/KeepingYouAwake](https://github.com/newmarcel/KeepingYouAwake) (MIT, © Marcel Dierkes). It keeps the app building with **Xcode 27.2** and running on **macOS 27**, and carries fixes and community pull requests that were still open upstream as of November 2026.
+StayLit is a fork of [KeepingYouAwake](https://github.com/newmarcel/KeepingYouAwake) by Marcel Dierkes (MIT, © 2014 - present Marcel Dierkes). The app and nearly all of its code are his and the KeepingYouAwake contributors'. It keeps the app building with **Xcode 27.2** and running on **macOS 27**, and carries fixes and community pull requests that were still open upstream as of November 2026.
 
 These changes aren't meant for upstream, so please don't send them to KeepingYouAwake as pull requests.
 
@@ -26,16 +26,16 @@ These changes aren't meant for upstream, so please don't send them to KeepingYou
 It now has its own test target (9 tests). The whole suite is 62 tests, all passing on Xcode 27.2.
 
 ### Merged upstream pull requests
-| PR | What | Notes |
-|---|---|---|
-| [#240](https://github.com/newmarcel/KeepingYouAwake/pull/240) | "Allow the display to sleep" toggle in the menu (closes [#265](https://github.com/newmarcel/KeepingYouAwake/issues/265)) | Combined with the fix above, toggling it during an activation takes effect right away. |
-| [#241](https://github.com/newmarcel/KeepingYouAwake/pull/241) | Live-updating remaining time in the menu | Also rebuilds the menu if the activation ends while it's open. |
-| [#242](https://github.com/newmarcel/KeepingYouAwake/pull/242) | Clamp battery threshold to 10–100% | |
-| [#245](https://github.com/newmarcel/KeepingYouAwake/pull/245) | Missing Korean translations | |
-| [#261](https://github.com/newmarcel/KeepingYouAwake/pull/261) | Makefile version → 1.6.9 | Only the Makefile change. Its README claims about Intel support were not verified, so they were not taken. |
-| [#263](https://github.com/newmarcel/KeepingYouAwake/pull/263) | "Activate until a time of day" (closes [#161](https://github.com/newmarcel/KeepingYouAwake/issues/161)) | Merged after a review pass that fixed: clock-time resume rolling over to the next day, invalid or past `until=` URLs deactivating a running activation, non-existent dates (Feb 30, DST gaps) being silently normalized, deleted presets coming back when only clock times are configured, and a DST-fragile test. |
+| PR | Author | What | Notes |
+|---|---|---|---|
+| [#240](https://github.com/newmarcel/KeepingYouAwake/pull/240) | [@lucasmezencio](https://github.com/lucasmezencio) | "Allow the display to sleep" toggle in the menu (closes [#265](https://github.com/newmarcel/KeepingYouAwake/issues/265)) | Combined with the fix above, toggling it during an activation takes effect right away. |
+| [#241](https://github.com/newmarcel/KeepingYouAwake/pull/241) | [@bryanvrgsc](https://github.com/bryanvrgsc) | Live-updating remaining time in the menu | Also rebuilds the menu if the activation ends while it's open. |
+| [#242](https://github.com/newmarcel/KeepingYouAwake/pull/242) | [@bryanvrgsc](https://github.com/bryanvrgsc) | Clamp battery threshold to 10–100% | |
+| [#245](https://github.com/newmarcel/KeepingYouAwake/pull/245) | [@wplong11](https://github.com/wplong11) | Missing Korean translations | |
+| [#261](https://github.com/newmarcel/KeepingYouAwake/pull/261) | [@jincaiw](https://github.com/jincaiw) | Makefile version → 1.6.9 | Only the Makefile change. Its README claims about Intel support were not verified, so they were not taken. |
+| [#263](https://github.com/newmarcel/KeepingYouAwake/pull/263) | [@austin-rt](https://github.com/austin-rt) | "Activate until a time of day" (closes [#161](https://github.com/newmarcel/KeepingYouAwake/issues/161)) | Merged after a review pass that fixed: clock-time resume rolling over to the next day, invalid or past `until=` URLs deactivating a running activation, non-existent dates (Feb 30, DST gaps) being silently normalized, deleted presets coming back when only clock times are configured, and a DST-fragile test. |
 
-Original authorship is preserved via merge commits.
+Each PR was merged with its original commits, so the authors keep authorship in the git history. They are also thanked in [CHANGELOG.md](CHANGELOG.md).
 
 ### Not done (feature requests, left for later)
 Lid-closed modes (#255, #258, #262, #266), CLI status (#225), notification toggles (#172), schedules (#189), keyboard shortcut (#190), and deactivating on lock/sleep (#93, #98, #108) are all new features, not compatibility work. #235 (activate on *window* mirroring / AirPlay) needs hardware to reproduce.
@@ -53,8 +53,23 @@ Lid-closed modes (#255, #258, #262, #266), CLI status (#225), notification toggl
 - **Tests:** `make test` needs `xcbeautify` (`brew install xcbeautify`), or run `xcodebuild test -workspace KeepingYouAwake.xcworkspace -scheme KeepingYouAwake -destination 'platform=macOS'` directly.
 
 ## Name and bundle identifier
-The app still uses the name *KeepingYouAwake* and the bundle ID `info.marcel-dierkes.KeepingYouAwake`. With the same bundle ID, your existing settings carry over, and the app replaces the upstream app in place.
+The fork is called **StayLit**. Its bundle ID is `com.principia29.StayLit` and its launcher's is `com.principia29.StayLit.Launcher`.
 
-Trade-offs if you want to rename later:
-- **Keep the current ID (status quo):** settings and custom icons carry over. macOS may ask once whether "KeepingYouAwake" may access data from other apps, because the sandbox container was created by Marcel's signature. Choose Allow. Homebrew's `keepingyouawake` cask, if you use it, would overwrite the fork.
-- **New name + new bundle ID** (e.g. `com.<you>.<NewName>` in `Configuration.xcconfig`, plus the launcher's ID in the project): clean container, no prompt, and it can run next to the original. Settings start fresh. The MIT license allows renaming and redistribution as long as `LICENSE` and the copyright notice stay. A different name also avoids confusion with the original app, which is polite if you publish builds.
+Upstream's README asks that forks not be redistributed under the same name and icon. The MIT license doesn't require that, but the rename honors it. `LICENSE`, Marcel's copyright line (`NSHumanReadableCopyright`) and the credits are kept.
+
+**What changed in the rename**
+- Bundle IDs live in `Configuration.xcconfig` and in the launcher target in the project file. The legacy login-item code in `NSApplication+KYALaunchAtLogin.m` has the launcher ID too. These three must match.
+- `PRODUCT_NAME` is `StayLit` / `StayLit Launcher`. The Xcode targets, schemes, workspace and source folders keep their `KeepingYouAwake` names on purpose, so upstream changes still merge cleanly.
+- Visible strings changed: the Settings window title (all languages), the About window and the credits.
+- URL schemes: `staylit://` is new. `keepingyouawake://` still works.
+- `Makefile`: `NAME` is still the project and scheme name. The new `APP_NAME` names the `dist/` output.
+
+**Left unchanged on purpose**
+- **User defaults keys** keep their `info.marcel-dierkes.KeepingYouAwake.*` prefix. They are internal, they live in StayLit's own sandbox container, and xib bindings refer to them. Renaming them means changing every one at once, in the code and in the xibs.
+- **Sparkle feed URLs** follow the GitHub repo name, which is now `ideal2545/StayLit` (`ideal2545.github.io/StayLit/...`). If the repo is renamed again, update `KYAAppUpdater.m` too.
+- **The icon** (`AppIcon.icon`) is still Marcel's original. A new icon is the last step toward fully honoring the README request, and it matters if you publish builds.
+
+**Effects of the new bundle ID**
+- StayLit gets its own sandbox container, so settings start fresh, and the "access data from other apps" prompt goes away.
+- It can run next to the original KeepingYouAwake. Both claim the `keepingyouawake://` scheme, so remove the original once you've switched.
+- When switching, turn off *Start at Login* in the old app *before* deleting it, then turn it on in StayLit.

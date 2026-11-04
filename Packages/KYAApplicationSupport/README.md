@@ -1,3 +1,3 @@
 # KYAApplicationSupport
 
-Application support objects for KeepingYouAwake.
+Application support objects for StayLit.

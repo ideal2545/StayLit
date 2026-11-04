@@ -1,3 +1,3 @@
 # KYACommon
 
-Provides common headers and utilities for KeepingYouAwake.
+Provides common headers and utilities for StayLit.

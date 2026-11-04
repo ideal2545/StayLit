@@ -15,7 +15,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "DA658E6A21CE907B0049F4C1"
-               BuildableName = "KeepingYouAwake Launcher.app"
+               BuildableName = "StayLit Launcher.app"
                BlueprintName = "KeepingYouAwake Launcher"
                ReferencedContainer = "container:KeepingYouAwake.xcodeproj">
             </BuildableReference>
@@ -45,7 +45,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "DA658E6A21CE907B0049F4C1"
-            BuildableName = "KeepingYouAwake Launcher.app"
+            BuildableName = "StayLit Launcher.app"
             BlueprintName = "KeepingYouAwake Launcher"
             ReferencedContainer = "container:KeepingYouAwake.xcodeproj">
          </BuildableReference>
@@ -62,7 +62,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "DA658E6A21CE907B0049F4C1"
-            BuildableName = "KeepingYouAwake Launcher.app"
+            BuildableName = "StayLit Launcher.app"
             BlueprintName = "KeepingYouAwake Launcher"
             ReferencedContainer = "container:KeepingYouAwake.xcodeproj">
          </BuildableReference>

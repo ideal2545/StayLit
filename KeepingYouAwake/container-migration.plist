@@ -5,7 +5,7 @@
 	<key>Move</key>
 	<array>
 		<array>
-			<string>${ApplicationSupport}/KeepingYouAwake</string>
+			<string>${ApplicationSupport}/StayLit</string>
 			<string>${Documents}</string>
 		</array>
 		<string>${Library}/Preferences/${BundleId}.plist</string>

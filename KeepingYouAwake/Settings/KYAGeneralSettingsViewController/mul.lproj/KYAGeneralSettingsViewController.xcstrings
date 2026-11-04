@@ -158,7 +158,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Empêche la mise en veille dès le lancement de KeepingYouAwake."
+            "value" : "Empêche la mise en veille dès le lancement de StayLit."
           }
         },
         "hi" : {
@@ -434,7 +434,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lance KeepingYouAwake au démarrage du Mac."
+            "value" : "Lance StayLit au démarrage du Mac."
           }
         },
         "hi" : {

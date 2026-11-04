@@ -102,7 +102,7 @@ NS_INLINE void KYALaunchAtLoginAppServiceSetEnabled(BOOL enabled) API_AVAILABLE(
 
 #pragma mark - User Default (Legacy)
 
-static NSString * const KYALauncherBundleIdentifier = @"info.marcel-dierkes.KeepingYouAwake.Launcher";
+static NSString * const KYALauncherBundleIdentifier = @"com.principia29.StayLit.Launcher";
 static NSString * const KYALauncherStateUserDefaultsKey = @"info.marcel-dierkes.KeepingYouAwake.LaunchAtLogin";
 
 NS_INLINE BOOL KYALaunchAtLoginUserDefaultExists()

@@ -6,8 +6,8 @@
 #### Preconditions
 
 ##### Required
-- [ ] I've read the [Contribution Guidelines](https://github.com/newmarcel/KeepingYouAwake/blob/main/CONTRIBUTING.md)
-- [ ] No AI tools were used to create the contents of this pull request
+- [ ] I've read the [Contribution Guidelines](https://github.com/ideal2545/StayLit/blob/main/CONTRIBUTING.md)
+- [ ] I've built the app and tested this change
 
 ##### Optional
-- [ ] I've used AI tools to help writing this pull request description
+- [ ] AI tools were used for this change (please describe how)

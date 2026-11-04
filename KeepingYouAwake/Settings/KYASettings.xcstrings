@@ -668,139 +668,139 @@
         }
       }
     },
-    "KeepingYouAwake – Settings" : {
+    "StayLit – Settings" : {
       "extractionState" : "manual",
       "localizations" : {
         "da" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "KeepingYouAwake – Indstillinger"
+            "value" : "StayLit – Indstillinger"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "KeepingYouAwake – Einstellungen"
+            "value" : "StayLit – Einstellungen"
           }
         },
         "el" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "KeepingYouAwake – Ρυθμίσεις"
+            "value" : "StayLit – Ρυθμίσεις"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "KeepingYouAwake – Settings"
+            "value" : "StayLit – Settings"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "KeepingYouAwake – Preferencias"
+            "value" : "StayLit – Preferencias"
           }
         },
         "fi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "KeepingYouAwake – Asetukset"
+            "value" : "StayLit – Asetukset"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "KeepingYouAwake – Préférences"
+            "value" : "StayLit – Préférences"
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "KeepingYouAwake – सेटिंग्स"
+            "value" : "StayLit – सेटिंग्स"
           }
         },
         "id" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "KeepingYouAwake – Pengaturan"
+            "value" : "StayLit – Pengaturan"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "KeepingYouAwake – Preferenze"
+            "value" : "StayLit – Preferenze"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "KeepingYouAwake – 設定"
+            "value" : "StayLit – 設定"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "KeepingYouAwake – 환경설정"
+            "value" : "StayLit – 환경설정"
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "KeepingYouAwake – Voorkeuren"
+            "value" : "StayLit – Voorkeuren"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "KeepingYouAwake – Ustawienia"
+            "value" : "StayLit – Ustawienia"
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "KeepingYouAwake – Preferências"
+            "value" : "StayLit – Preferências"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Настройки – KeepingYouAwake"
+            "value" : "Настройки – StayLit"
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "KeepingYouAwake – Nastavenia"
+            "value" : "StayLit – Nastavenia"
           }
         },
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "KeepingYouAwake – Tercihler"
+            "value" : "StayLit – Tercihler"
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "KeepingYouAwake – Налаштування"
+            "value" : "StayLit – Налаштування"
           }
         },
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "KeepingYouAwake – Cài đặt"
+            "value" : "StayLit – Cài đặt"
           }
         },
         "zh" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "KeepingYouAwake – 偏好设置"
+            "value" : "StayLit – 偏好设置"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "KeepingYouAwake – 偏好設定"
+            "value" : "StayLit – 偏好設定"
           }
         }
       }

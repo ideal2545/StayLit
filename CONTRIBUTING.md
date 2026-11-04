@@ -1,15 +1,14 @@
 # Contribution Guidelines
-Thank you for considering a contribution to `KeepingYouAwake`! These guidelines are intended to help with avoiding rejection of code contributions and rework requests.
+
+Thank you for considering a contribution to `StayLit`! Please open issues and pull requests on [ideal2545/StayLit](https://github.com/ideal2545/StayLit).
 
 ## Localizations
-The preferred way of updating or adding a localization for `KeepingYouAwake` is by creating a pull request that **only** contains the modified `*.xliff` files within a `*.xcloc` localization catalog. Updated translations can be exported from within _Xcode_ as an `*.xcloc` catalog. Updated translations should be located in `Localizations/KeepingYouAwake/<language>.xcloc/Localized Contents/<language>.xliff`.
+To update or add a localization, the preferred pull request contains **only** the modified `*.xliff` files inside a `*.xcloc` localization catalog. You can export updated translations from _Xcode_ as an `*.xcloc` catalog. Updated translations go in `Localizations/KeepingYouAwake/<language>.xcloc/Localized Contents/<language>.xliff`. The folder keeps its original name so upstream changes still merge cleanly.
 
-Localizations will usually be imported back into the app by the maintainer after the pull request is merged or after a major _Xcode_ version is released. The project configuration for a new language will also be updated by the maintainer after the pull request is merged. A pull request for a localization update should be restricted to a single language and should not include unrelated code changes.
-
-It's not forbidden to create a pull request with modified `*.xcstrings` files, it's just not preferred and should be avoided.
+Keep a localization pull request to a single language, with no unrelated code changes. Pull requests that change `*.xcstrings` files directly are accepted, but please avoid them where you can.
 
 ### Credits (Optional)
-The maintainer of this project likes to credit anyone who adds a new language or contributes major translation updates. This is done using the `Credits.rtf` file, which shows up in the "About" tab of the app settings. **If** you want to be credited, a line in the following format can be included in the pull request itself or the pull request description:
+Anyone who adds a language or contributes a major translation update can be credited in `Credits.rtf`, which appears in the "About" tab of the app settings. To be credited, include a line in this format in the pull request or its description:
 
 ```
 [language] Translation
@@ -20,24 +19,18 @@ The maintainer of this project likes to credit anyone who adds a new language or
 _(just follow the pattern of the other translation credits)_
 
 ## Code Style and Programming Language
-There are no strict up-to-date code style rules for this project. Please follow the code style of existing code, especially when it comes to brackets (`{}`, `()`), spaces and line breaks. Please use the `Auto` helper macro for type inference of local variables, which is non-standard in Objective-C.
+There are no strict code style rules. Please follow the style of the existing code, especially for brackets (`{}`, `()`), spaces and line breaks. Use the `Auto` helper macro for type inference of local variables. It's non-standard in Objective-C.
 
-Objective-C, C and C++ are the preferred languages of this project and at the time of writing it is not considered to convert or accept code in any other programming language.
+Objective-C, C and C++ are the project's languages. Please don't convert code to other languages.
+
+Code that comes from KeepingYouAwake keeps its original file headers and copyright notices.
 
 ## Features, Structural Changes and UI Modifications
-If you plan working on concrete features, structural changes to the setup of the project or any UI modifications, please start by creating a GitHub issue first as a proposal. This is the safest way to avoid pull request rejection or long feedback cycles.
+For features, structural changes or UI changes, please open an issue with a proposal first. That avoids long review cycles and wasted work.
 
-## Generated Or Assisted AI Code
-AI-assisted or generated code changes and pull requests are generally not accepted and will be closed. This is a project by humans for humans and its features and source code are entirely curated by actual people. The functionality of `KeepingYouAwake` can be trivially copied, so the curation aspect is integral to the project.
-
-If you only use AI tools to help with writing the issue or pull request description, please disclose this within the description. It's generally preferred to be brief in those cases and avoid needlessly wordy generated text.
+## Upstream
+StayLit changes aren't meant for KeepingYouAwake, so please don't send them there as pull requests.
 
 ---
 
-A pull request can always be closed. The maintainer of this project aims to provide a reason when this happens, because it's always respected that time and energy went into the creation of the pull request.
-
-
 > _Thank you very much!_
-
-> Marcel Dierkes  
-> Creator and Maintainer of `KeepingYouAwake`

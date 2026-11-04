@@ -1,4 +1,5 @@
 NAME = KeepingYouAwake
+APP_NAME = StayLit
 VERSION = 1.6.9
 
 SCHEME = $(NAME)
@@ -81,11 +82,11 @@ $(OUTPUT_DIR)/$(NAME).pkg: $(OUTPUT_DIR)/$(NAME).xcarchive
 	$(SAVE_LOG) \
 	$(BEAUTIFY)
 
-$(OUTPUT_DIR)/$(NAME)-$(VERSION).zip:
-	@echo "Exporting $(OUTPUT_DIR)/$(NAME)-$(VERSION).zip..."
-	@ditto -c -k --sequesterRsrc --keepParent $(OUTPUT_DIR)/$(NAME).app $(OUTPUT_DIR)/$(NAME)-$(VERSION).zip
+$(OUTPUT_DIR)/$(APP_NAME)-$(VERSION).zip:
+	@echo "Exporting $(OUTPUT_DIR)/$(APP_NAME)-$(VERSION).zip..."
+	@ditto -c -k --sequesterRsrc --keepParent $(OUTPUT_DIR)/$(APP_NAME).app $(OUTPUT_DIR)/$(APP_NAME)-$(VERSION).zip
 
-dist: $(OUTPUT_DIR)/$(NAME)-$(VERSION).zip
+dist: $(OUTPUT_DIR)/$(APP_NAME)-$(VERSION).zip
 	@echo "Verifying code signing identity..."
-	@spctl -a -vv $(OUTPUT_DIR)/$(NAME).app
+	@spctl -a -vv $(OUTPUT_DIR)/$(APP_NAME).app
 PHONY: dist

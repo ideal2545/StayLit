@@ -15,7 +15,7 @@
     NSBundle.mainBundle, \
     __comment)
 
-#define KYA_SETTINGS_L10N_TITLE KYA_SETTINGS_LOCALIZED_STRING(@"KeepingYouAwake – Settings", @"KeepingYouAwake – Settings")
+#define KYA_SETTINGS_L10N_TITLE KYA_SETTINGS_LOCALIZED_STRING(@"StayLit – Settings", @"StayLit – Settings")
 
 #define KYA_SETTINGS_L10N_GENERAL KYA_SETTINGS_LOCALIZED_STRING(@"General", @"General")
 #define KYA_SETTINGS_L10N_ACTIVATION_DURATION KYA_SETTINGS_LOCALIZED_STRING(@"Activation Duration", @"Activation Duration")

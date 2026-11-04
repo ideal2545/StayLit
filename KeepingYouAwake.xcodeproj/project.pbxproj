@@ -40,7 +40,7 @@
 		DA658E7721CE907D0049F4C1 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = DA658E7621CE907D0049F4C1 /* main.m */; };
 		DA658E7D21CE90F30049F4C1 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = DA658E7C21CE90F30049F4C1 /* MainMenu.xib */; };
 		DA658E8021CE91540049F4C1 /* KYAAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = DA658E7F21CE91540049F4C1 /* KYAAppDelegate.m */; };
-		DA658E8421CE93310049F4C1 /* KeepingYouAwake Launcher.app in Embed Launcher */ = {isa = PBXBuildFile; fileRef = DA658E6B21CE907B0049F4C1 /* KeepingYouAwake Launcher.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		DA658E8421CE93310049F4C1 /* StayLit Launcher.app in Embed Launcher */ = {isa = PBXBuildFile; fileRef = DA658E6B21CE907B0049F4C1 /* StayLit Launcher.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		DA814383281D59970004BE71 /* KYAStatusItemUI in Frameworks */ = {isa = PBXBuildFile; productRef = DA814382281D59970004BE71 /* KYAStatusItemUI */; };
 		DA814385281D599D0004BE71 /* KYAStatusItemUI in Frameworks */ = {isa = PBXBuildFile; productRef = DA814384281D599D0004BE71 /* KYAStatusItemUI */; };
 		DA82560D22FB5AFC005ECB3A /* KYAActivationDurationsMenuController.m in Sources */ = {isa = PBXBuildFile; fileRef = DA82560C22FB5AFC005ECB3A /* KYAActivationDurationsMenuController.m */; };
@@ -91,7 +91,7 @@
 		DAD3CF7E271186720006CA14 /* KYADurationSettingsViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = DAD9838C26F9037900234FB8 /* KYADurationSettingsViewController.xib */; };
 		DAD3CF7F271186720006CA14 /* KYAGeneralSettingsViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = DAD982FA26F8849A00234FB8 /* KYAGeneralSettingsViewController.xib */; };
 		DAD3CF81271186720006CA14 /* KYADurationCell.xib in Resources */ = {isa = PBXBuildFile; fileRef = DAB0700B22EC795F004D5BCA /* KYADurationCell.xib */; };
-		DAD3CF86271186720006CA14 /* KeepingYouAwake Launcher.app in Embed Launcher */ = {isa = PBXBuildFile; fileRef = DA658E6B21CE907B0049F4C1 /* KeepingYouAwake Launcher.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		DAD3CF86271186720006CA14 /* StayLit Launcher.app in Embed Launcher */ = {isa = PBXBuildFile; fileRef = DA658E6B21CE907B0049F4C1 /* StayLit Launcher.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		DAD68A7C27C957B30036ED19 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = DAD68A7B27C957B30036ED19 /* MainMenu.xib */; };
 		DAD68A7D27C957B30036ED19 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = DAD68A7B27C957B30036ED19 /* MainMenu.xib */; };
 		DAD68A8127C957E20036ED19 /* KYAMainMenu.m in Sources */ = {isa = PBXBuildFile; fileRef = DAD68A8027C957E20036ED19 /* KYAMainMenu.m */; };
@@ -130,7 +130,7 @@
 			dstPath = Contents/Library/LoginItems;
 			dstSubfolderSpec = 1;
 			files = (
-				DA658E8421CE93310049F4C1 /* KeepingYouAwake Launcher.app in Embed Launcher */,
+				DA658E8421CE93310049F4C1 /* StayLit Launcher.app in Embed Launcher */,
 			);
 			name = "Embed Launcher";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -161,7 +161,7 @@
 			dstPath = Contents/Library/LoginItems;
 			dstSubfolderSpec = 1;
 			files = (
-				DAD3CF86271186720006CA14 /* KeepingYouAwake Launcher.app in Embed Launcher */,
+				DAD3CF86271186720006CA14 /* StayLit Launcher.app in Embed Launcher */,
 			);
 			name = "Embed Launcher";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -195,14 +195,14 @@
 		DA52B1072617021500D09FE5 /* KYAActivationUserNotification.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = KYAActivationUserNotification.h; sourceTree = "<group>"; };
 		DA5680192115FF140039C979 /* KYAUpdateSettingsViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = KYAUpdateSettingsViewController.m; sourceTree = "<group>"; };
 		DA56801A2115FF140039C979 /* KYAUpdateSettingsViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = KYAUpdateSettingsViewController.h; sourceTree = "<group>"; };
-		DA637B3919F14693004C8838 /* KeepingYouAwake.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = KeepingYouAwake.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		DA637B3919F14693004C8838 /* StayLit.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = StayLit.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		DA637B3D19F14693004C8838 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		DA637B3E19F14693004C8838 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 		DA637B4019F14693004C8838 /* KYAAppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = KYAAppDelegate.h; sourceTree = "<group>"; };
 		DA637B4119F14693004C8838 /* KYAAppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = KYAAppDelegate.m; sourceTree = "<group>"; };
 		DA637B5C19F146B6004C8838 /* KYAAppController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = KYAAppController.h; sourceTree = "<group>"; };
 		DA637B5D19F146B6004C8838 /* KYAAppController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = KYAAppController.m; sourceTree = "<group>"; };
-		DA658E6B21CE907B0049F4C1 /* KeepingYouAwake Launcher.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "KeepingYouAwake Launcher.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		DA658E6B21CE907B0049F4C1 /* StayLit Launcher.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "StayLit Launcher.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		DA658E7521CE907D0049F4C1 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		DA658E7621CE907D0049F4C1 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 		DA658E7821CE907D0049F4C1 /* KYALauncher.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = KYALauncher.entitlements; sourceTree = "<group>"; };
@@ -236,7 +236,7 @@
 		DAB1286B1C24540200831045 /* KYAAboutSettingsViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = KYAAboutSettingsViewController.m; sourceTree = "<group>"; };
 		DAB128741C2493DB00831045 /* KYAUserDefaultsSetting.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = KYAUserDefaultsSetting.h; sourceTree = "<group>"; };
 		DAB128751C2493DB00831045 /* KYAUserDefaultsSetting.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = KYAUserDefaultsSetting.m; sourceTree = "<group>"; };
-		DAD3CF8F271186720006CA14 /* KeepingYouAwake.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = KeepingYouAwake.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		DAD3CF8F271186720006CA14 /* StayLit.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = StayLit.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		DAD68A7B27C957B30036ED19 /* MainMenu.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = MainMenu.xib; sourceTree = "<group>"; };
 		DAD68A7F27C957E20036ED19 /* KYAMainMenu.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = KYAMainMenu.h; sourceTree = "<group>"; };
 		AT0000012026093000000002 /* KYAActivateUntilDateWindowController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = KYAActivateUntilDateWindowController.h; sourceTree = "<group>"; };
@@ -394,9 +394,9 @@
 		DA637B3A19F14693004C8838 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				DA637B3919F14693004C8838 /* KeepingYouAwake.app */,
-				DA658E6B21CE907B0049F4C1 /* KeepingYouAwake Launcher.app */,
-				DAD3CF8F271186720006CA14 /* KeepingYouAwake.app */,
+				DA637B3919F14693004C8838 /* StayLit.app */,
+				DA658E6B21CE907B0049F4C1 /* StayLit Launcher.app */,
+				DAD3CF8F271186720006CA14 /* StayLit.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -573,7 +573,7 @@
 				DA51CA682BB75A120013175E /* KYACommon */,
 			);
 			productName = KeepingYouAwake;
-			productReference = DA637B3919F14693004C8838 /* KeepingYouAwake.app */;
+			productReference = DA637B3919F14693004C8838 /* StayLit.app */;
 			productType = "com.apple.product-type.application";
 		};
 		DA658E6A21CE907B0049F4C1 /* KeepingYouAwake Launcher */ = {
@@ -590,7 +590,7 @@
 			);
 			name = "KeepingYouAwake Launcher";
 			productName = KYALauncher;
-			productReference = DA658E6B21CE907B0049F4C1 /* KeepingYouAwake Launcher.app */;
+			productReference = DA658E6B21CE907B0049F4C1 /* StayLit Launcher.app */;
 			productType = "com.apple.product-type.application";
 		};
 		DAD3CF56271186720006CA14 /* KeepingYouAwake (Direct) */ = {
@@ -621,7 +621,7 @@
 				DA51CA662BB75A0B0013175E /* KYACommon */,
 			);
 			productName = KeepingYouAwake;
-			productReference = DAD3CF8F271186720006CA14 /* KeepingYouAwake.app */;
+			productReference = DAD3CF8F271186720006CA14 /* StayLit.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -1055,7 +1055,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = StayLit;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 			};
@@ -1079,7 +1079,7 @@
 					"@executable_path/../Frameworks",
 				);
 				OTHER_CODE_SIGN_FLAGS = "$(inherited) --timestamp";
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = StayLit;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 			};
@@ -1111,8 +1111,8 @@
 				);
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = "info.marcel-dierkes.KeepingYouAwake.Launcher";
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.principia29.StayLit.Launcher;
+				PRODUCT_NAME = "StayLit Launcher";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SKIP_INSTALL = YES;
 			};
@@ -1145,8 +1145,8 @@
 				);
 				MTL_FAST_MATH = YES;
 				OTHER_CODE_SIGN_FLAGS = "$(inherited) --timestamp";
-				PRODUCT_BUNDLE_IDENTIFIER = "info.marcel-dierkes.KeepingYouAwake.Launcher";
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.principia29.StayLit.Launcher;
+				PRODUCT_NAME = "StayLit Launcher";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SKIP_INSTALL = YES;
 			};
@@ -1174,7 +1174,7 @@
 					"@executable_path/../Frameworks",
 				);
 				LOCALIZATION_EXPORT_SUPPORTED = NO;
-				PRODUCT_NAME = KeepingYouAwake;
+				PRODUCT_NAME = StayLit;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 			};
@@ -1203,7 +1203,7 @@
 				);
 				LOCALIZATION_EXPORT_SUPPORTED = NO;
 				OTHER_CODE_SIGN_FLAGS = "$(inherited) --timestamp";
-				PRODUCT_NAME = KeepingYouAwake;
+				PRODUCT_NAME = StayLit;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 			};

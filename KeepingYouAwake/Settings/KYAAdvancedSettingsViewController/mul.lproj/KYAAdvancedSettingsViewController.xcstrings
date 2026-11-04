@@ -207,7 +207,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Vous utilisez ces préférences avancées à vos risques. Ils requièrent un redémarrage de KeepingYouAwake."
+            "value" : "Vous utilisez ces préférences avancées à vos risques. Ils requièrent un redémarrage de StayLit."
           }
         },
         "hi" : {

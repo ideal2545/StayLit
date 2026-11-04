@@ -1,13 +1,15 @@
-# KeepingYouAwake Automation
+# StayLit Automation
 
 ## URL Scheme
 
-KeepingYouAwake supports the `keepingyouawake:///` URL scheme to activate and deactive the app externally.
+StayLit supports the `staylit:///` URL scheme, so other apps and scripts can switch it on and off.
+
+The older `keepingyouawake:///` scheme also works, with the same commands.
 
 ### activate
 
 ```
-keepingyouawake:///activate
+staylit:///activate
 ```
 
 Activates and prevents sleep for the configured default duration.
@@ -15,7 +17,7 @@ Activates and prevents sleep for the configured default duration.
 #### activate?seconds=X
 
 ```
-keepingyouawake:///activate?seconds=30
+staylit:///activate?seconds=30
 ```
 
 Activates and prevents sleep for exactly 30 seconds.
@@ -23,7 +25,7 @@ Activates and prevents sleep for exactly 30 seconds.
 #### activate?minutes=X
 
 ```
-keepingyouawake:///activate?minutes=5
+staylit:///activate?minutes=5
 ```
 
 Activates and prevents sleep for exactly 5 minutes.
@@ -31,7 +33,7 @@ Activates and prevents sleep for exactly 5 minutes.
 #### activate?hours=X
 
 ```
-keepingyouawake:///activate?hours=2
+staylit:///activate?hours=2
 ```
 
 Activates and prevents sleep for exactly 2 hours.
@@ -39,7 +41,7 @@ Activates and prevents sleep for exactly 2 hours.
 #### activate?until=HH:MM
 
 ```
-keepingyouawake:///activate?until=17:00
+staylit:///activate?until=17:00
 ```
 
 Activates and prevents sleep until the next 5:00 PM local time. The time uses the 24-hour clock; if it has already passed today, the timer runs until that time tomorrow.
@@ -47,7 +49,7 @@ Activates and prevents sleep until the next 5:00 PM local time. The time uses th
 #### activate?until=YYYY-MM-DDTHH:MM
 
 ```
-keepingyouawake:///activate?until=2026-10-03T17:00
+staylit:///activate?until=2026-10-03T17:00
 ```
 
 Activates and prevents sleep until that local date and time. A date in the past, a date that does not exist (e.g. `2027-02-30T17:00`) or a time skipped by a daylight saving change is ignored, and a running activation stays as it is. The same applies to an invalid `until=HH:MM` value.
@@ -57,7 +59,7 @@ _Please note: the seconds, minutes, hours and until parameters cannot be combine
 ### deactivate
 
 ```
-keepingyouawake:///deactivate
+staylit:///deactivate
 ```
 
 Deactivates and allows the system to go to sleep.
@@ -65,18 +67,18 @@ Deactivates and allows the system to go to sleep.
 ### toggle
 
 ```
-keepingyouawake:///toggle
+staylit:///toggle
 ```
 
 Toggles the activation state between activated and deactivated.
 
 ## Command Line Usage
 
-The URL scheme can be used together with the `open` command to control KeepingYouAwake from the command line.
+The URL scheme can be used together with the `open` command to control StayLit from the command line.
 
 ```
-open -g "keepingyouawake:///activate"
-open -g "keepingyouawake:///activate?seconds=30"
-open -g "keepingyouawake:///deactivate"
-open -g "keepingyouawake:///toggle"
+open -g "staylit:///activate"
+open -g "staylit:///activate?seconds=30"
+open -g "staylit:///deactivate"
+open -g "staylit:///toggle"
 ```
