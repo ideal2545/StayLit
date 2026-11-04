@@ -59,6 +59,8 @@
 #define KYA_L10N_ALLOW_DISPLAY_SLEEP NSLocalizedString(@"Allow the display to sleep", @"Allow the display to sleep")
 #define KYA_L10N_ACTIVATE_ON_EXTERNAL_DISPLAY NSLocalizedString(@"Activate when an external display is connected", @"Activate when an external display is connected")
 #define KYA_L10N_ONLY_AUTOMATIC_NOTIFICATIONS NSLocalizedString(@"Only notify when StayLit turns on or off by itself", @"Only notify when StayLit turns on or off by itself")
+#define KYA_L10N_PAUSE_WHILE_SCREEN_LOCKED NSLocalizedString(@"Pause while the screen is locked", @"Pause while the screen is locked")
+#define KYA_L10N_DEACTIVATE_ON_SLEEP NSLocalizedString(@"Deactivate when the Mac goes to sleep", @"Deactivate when the Mac goes to sleep")
 #define KYA_L10N_DEACTIVATE_ON_USER_SWITCH NSLocalizedString(@"Deactivate when switched to another user account", @"Deactivate when switched to another user account")
 #define KYA_L10N_KEEP_AWAKE_WITH_LID_CLOSED NSLocalizedString(@"Keep awake when the lid is closed", @"Keep awake when the lid is closed")
 

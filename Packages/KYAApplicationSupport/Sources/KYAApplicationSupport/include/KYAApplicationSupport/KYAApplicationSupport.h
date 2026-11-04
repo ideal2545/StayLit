@@ -12,3 +12,4 @@
 #import <KYAApplicationSupport/NSUserDefaults+KYAKeys.h>
 #import <KYAApplicationSupport/KYADisplayParameters.h>
 #import <KYAApplicationSupport/KYALidSleepController.h>
+#import <KYAApplicationSupport/KYASuspensionTracker.h>

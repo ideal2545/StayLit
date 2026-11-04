@@ -70,6 +70,14 @@ KYA_GENERATE_BOOL_TEST(areManualChangeNotificationsDisabled,
                        manualChangeNotificationsDisabled,
                        KYAUserDefaultsKeyManualChangeNotificationsDisabled);
 
+KYA_GENERATE_BOOL_TEST(isPauseWhileScreenLockedEnabled,
+                       pauseWhileScreenLockedEnabled,
+                       KYAUserDefaultsKeyPauseWhileScreenLockedEnabled);
+
+KYA_GENERATE_BOOL_TEST(isDeactivateOnSleepEnabled,
+                       deactivateOnSleepEnabled,
+                       KYAUserDefaultsKeyDeactivateOnSleepEnabled);
+
 KYA_GENERATE_BOOL_TEST(isDeactivateOnUserSwitchEnabled,
                        deactivateOnUserSwitchEnabled,
                        KYAUserDefaultsKeyDeactivateOnUserSwitchEnabled);

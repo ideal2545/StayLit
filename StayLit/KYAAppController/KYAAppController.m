@@ -25,6 +25,9 @@
 @property (nonatomic) KYAActivationDurationsMenuController *menuController;
 
 @property (nonatomic) NSTimeInterval workspaceScheduledTimeInterval;
+@property (nonatomic) KYASuspensionTracker *suspensionTracker;
+// YES while pausing or resuming, so those changes keep the paused activation.
+@property (nonatomic, getter=isChangingSuspendedActivation) BOOL changingSuspendedActivation;
 
 // Settings that require restarting caffeinate when changed
 @property (nonatomic) BOOL lastAllowDisplaySleep;
@@ -102,6 +105,8 @@
                        name:NSUserDefaultsDidChangeNotification
                      object:nil];
         
+        self.suspensionTracker = [KYASuspensionTracker new];
+        self.workspaceScheduledTimeInterval = -1;
         [self registerForWorkspaceSessionNotifications];
     }
     return self;
@@ -216,6 +221,7 @@
         return;
     }
     self.activeActivationDuration = nil;
+    [self discardSuspendedActivationUnlessChangingIt];
 
     Auto defaults = NSUserDefaults.standardUserDefaults;
     BOOL userInitiated = self.handlingUserAction;
@@ -260,6 +266,7 @@
 
 - (void)terminateTimer
 {
+    [self discardSuspendedActivationUnlessChangingIt];
     if(self.handlingUserAction && [self.sleepWakeTimer isScheduled])
     {
         self.deactivationIsUserInitiated = YES;
@@ -636,6 +643,9 @@
 
 #pragma mark - Workspace Session Handling
 
+static NSString * const KYAScreenIsLockedNotification = @"com.apple.screenIsLocked";
+static NSString * const KYAScreenIsUnlockedNotification = @"com.apple.screenIsUnlocked";
+
 - (void)registerForWorkspaceSessionNotifications
 {
     Auto workspaceCenter = NSWorkspace.sharedWorkspace.notificationCenter;
@@ -647,6 +657,21 @@
                         selector:@selector(workspaceSessionDidResignActive:)
                             name:NSWorkspaceSessionDidResignActiveNotification
                           object:nil];
+    [workspaceCenter addObserver:self
+                        selector:@selector(workspaceWillSleep:)
+                            name:NSWorkspaceWillSleepNotification
+                          object:nil];
+
+    // StayLit: screen lock (#98, #108)
+    Auto distributedCenter = NSDistributedNotificationCenter.defaultCenter;
+    [distributedCenter addObserver:self
+                          selector:@selector(screenDidLock:)
+                              name:KYAScreenIsLockedNotification
+                            object:nil];
+    [distributedCenter addObserver:self
+                          selector:@selector(screenDidUnlock:)
+                              name:KYAScreenIsUnlockedNotification
+                            object:nil];
 }
 
 - (void)unregisterFromWorkspaceSessionNotifications
@@ -658,52 +683,127 @@
     [workspaceCenter removeObserver:self
                                name:NSWorkspaceSessionDidResignActiveNotification
                              object:nil];
+    [workspaceCenter removeObserver:self
+                               name:NSWorkspaceWillSleepNotification
+                             object:nil];
+
+    Auto distributedCenter = NSDistributedNotificationCenter.defaultCenter;
+    [distributedCenter removeObserver:self name:KYAScreenIsLockedNotification object:nil];
+    [distributedCenter removeObserver:self name:KYAScreenIsUnlockedNotification object:nil];
 }
 
 - (void)workspaceSessionDidBecomeActive:(NSNotification *)notification
 {
-    Auto defaults = NSUserDefaults.standardUserDefaults;
-    if([defaults kya_isDeactivateOnUserSwitchEnabled] && self.workspaceScheduledTimeInterval >= 0)
+    if([self.suspensionTracker resumeForReason:KYASuspensionReasonUserSwitch])
     {
-        Auto plan = [KYAResumePlan planForResumingDuration:self.workspaceActivationDuration
-                                                  fireDate:self.workspaceFireDate
-                                              timeInterval:self.workspaceScheduledTimeInterval
-                                                       now:[NSDate date]];
-        self.workspaceScheduledTimeInterval = -1;
-        self.workspaceActivationDuration = nil;
-        self.workspaceFireDate = nil;
-        
-        switch(plan.action)
-        {
-            case KYAResumeActionNone:
-                break;
-            case KYAResumeActionActivationDuration:
-                [self activateTimerWithActivationDuration:plan.activationDuration];
-                break;
-            case KYAResumeActionUntilDate:
-                [self activateTimerUntilDate:plan.endDate];
-                if(plan.activationDuration != nil && [self.sleepWakeTimer isScheduled])
-                {
-                    self.activeActivationDuration = plan.activationDuration;
-                }
-                break;
-            case KYAResumeActionTimeInterval:
-                [self activateTimerWithTimeInterval:plan.timeInterval];
-                break;
-        }
+        [self resumeSuspendedActivation];
     }
 }
 
 - (void)workspaceSessionDidResignActive:(NSNotification *)notification
 {
-    Auto defaults = NSUserDefaults.standardUserDefaults;
-    if([defaults kya_isDeactivateOnUserSwitchEnabled] && [self.sleepWakeTimer isScheduled])
+    if([NSUserDefaults.standardUserDefaults kya_isDeactivateOnUserSwitchEnabled] == NO) { return; }
+    [self suspendActivationForReason:KYASuspensionReasonUserSwitch];
+}
+
+- (void)screenDidLock:(NSNotification *)notification
+{
+    if([NSUserDefaults.standardUserDefaults kya_isPauseWhileScreenLockedEnabled] == NO) { return; }
+    [self suspendActivationForReason:KYASuspensionReasonScreenLock];
+}
+
+- (void)screenDidUnlock:(NSNotification *)notification
+{
+    if([self.suspensionTracker resumeForReason:KYASuspensionReasonScreenLock])
     {
-        self.workspaceScheduledTimeInterval = self.sleepWakeTimer.scheduledTimeInterval;
-        self.workspaceActivationDuration = self.activeActivationDuration;
-        self.workspaceFireDate = self.sleepWakeTimer.fireDate;
+        [self resumeSuspendedActivation];
+    }
+}
+
+- (void)workspaceWillSleep:(NSNotification *)notification
+{
+    // StayLit: "Deactivate when the Mac goes to sleep" (#93). While StayLit
+    // is on, the Mac only sleeps when asked to (or on low battery).
+    if([NSUserDefaults.standardUserDefaults kya_isDeactivateOnSleepEnabled] == NO) { return; }
+
+    // A paused activation (e.g. screen locked) stays off after waking.
+    [self discardSuspendedActivation];
+    if([self.sleepWakeTimer isScheduled])
+    {
         [self terminateTimer];
     }
+}
+
+#pragma mark - Pausing and Resuming
+
+- (void)suspendActivationForReason:(KYASuspensionReason)reason
+{
+    BOOL running = [self.sleepWakeTimer isScheduled];
+    if([self.suspensionTracker suspendForReason:reason activationIsRunning:running] == NO) { return; }
+
+    self.workspaceScheduledTimeInterval = self.sleepWakeTimer.scheduledTimeInterval;
+    self.workspaceActivationDuration = self.activeActivationDuration;
+    self.workspaceFireDate = self.sleepWakeTimer.fireDate;
+
+    self.changingSuspendedActivation = YES;
+    [self terminateTimer];
+    self.changingSuspendedActivation = NO;
+}
+
+/// Turning StayLit off or starting a new activation while paused (e.g. with
+/// a staylit:// URL while the screen is locked) replaces the paused activation,
+/// so unlocking doesn't bring it back.
+- (void)discardSuspendedActivationUnlessChangingIt
+{
+    if(self.changingSuspendedActivation || self.suspensionTracker.isSuspended == NO) { return; }
+    [self discardSuspendedActivation];
+}
+
+- (void)discardSuspendedActivation
+{
+    [self.suspensionTracker reset];
+    self.workspaceScheduledTimeInterval = -1;
+    self.workspaceActivationDuration = nil;
+    self.workspaceFireDate = nil;
+}
+
+- (void)resumeSuspendedActivation
+{
+    if(self.workspaceScheduledTimeInterval < 0)
+    {
+        [self discardSuspendedActivation];
+        return;
+    }
+
+    Auto plan = [KYAResumePlan planForResumingDuration:self.workspaceActivationDuration
+                                              fireDate:self.workspaceFireDate
+                                          timeInterval:self.workspaceScheduledTimeInterval
+                                                   now:[NSDate date]];
+    [self discardSuspendedActivation];
+
+    // Something else (e.g. a staylit:// URL) started an activation meanwhile: keep it.
+    if([self.sleepWakeTimer isScheduled]) { return; }
+
+    self.changingSuspendedActivation = YES;
+    switch(plan.action)
+    {
+        case KYAResumeActionNone:
+            break;
+        case KYAResumeActionActivationDuration:
+            [self activateTimerWithActivationDuration:plan.activationDuration];
+            break;
+        case KYAResumeActionUntilDate:
+            [self activateTimerUntilDate:plan.endDate];
+            if(plan.activationDuration != nil && [self.sleepWakeTimer isScheduled])
+            {
+                self.activeActivationDuration = plan.activationDuration;
+            }
+            break;
+        case KYAResumeActionTimeInterval:
+            [self activateTimerWithTimeInterval:plan.timeInterval];
+            break;
+    }
+    self.changingSuspendedActivation = NO;
 }
 
 #pragma mark - Event Handling

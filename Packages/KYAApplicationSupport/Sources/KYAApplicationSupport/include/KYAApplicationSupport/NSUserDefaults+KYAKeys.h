@@ -17,6 +17,8 @@ KYA_EXPORT NSString * const KYAUserDefaultsKeyAllowDisplaySleep;
 KYA_EXPORT NSString * const KYAUserDefaultsKeyActivateOnExternalDisplayConnectedEnabled;
 KYA_EXPORT NSString * const KYAUserDefaultsKeyDeactivateOnUserSwitchEnabled;
 KYA_EXPORT NSString * const KYAUserDefaultsKeyManualChangeNotificationsDisabled;
+KYA_EXPORT NSString * const KYAUserDefaultsKeyPauseWhileScreenLockedEnabled;
+KYA_EXPORT NSString * const KYAUserDefaultsKeyDeactivateOnSleepEnabled;
 KYA_EXPORT NSString * const KYAUserDefaultsKeyMenuBarIconHighlightDisabled;
 KYA_EXPORT NSString * const KYAUserDefaultsKeyIsQuitOnTimerExpirationEnabled;
 KYA_EXPORT NSString * const KYAUserDefaultsKeyBatteryCapacityThresholdEnabled;
@@ -77,6 +79,13 @@ KYA_EXPORT NSString * const KYAUserDefaultsKeyToggleHotKey;
 /// StayLit: Returns YES if notifications should only be shown when StayLit
 /// turns on or off by itself, not when the user turns it on or off.
 @property (nonatomic, getter=kya_areManualChangeNotificationsDisabled) BOOL kya_manualChangeNotificationsDisabled;
+
+/// StayLit: Returns YES if an activation should pause while the screen is
+/// locked and resume when it's unlocked.
+@property (nonatomic, getter=kya_isPauseWhileScreenLockedEnabled) BOOL kya_pauseWhileScreenLockedEnabled;
+
+/// StayLit: Returns YES if an activation should end when the Mac goes to sleep.
+@property (nonatomic, getter=kya_isDeactivateOnSleepEnabled) BOOL kya_deactivateOnSleepEnabled;
 
 @end
 

@@ -83,6 +83,8 @@
     [settings addObject:[[KYAUserDefaultsSetting alloc] initWithTitle:KYA_L10N_DEACTIVATE_ON_USER_SWITCH key:KYAUserDefaultsKeyDeactivateOnUserSwitchEnabled]];
     [settings addObject:[[KYAUserDefaultsSetting alloc] initWithTitle:KYA_L10N_KEEP_AWAKE_WITH_LID_CLOSED key:KYAUserDefaultsKeyKeepAwakeWithLidClosed]];
     [settings addObject:[[KYAUserDefaultsSetting alloc] initWithTitle:KYA_L10N_ONLY_AUTOMATIC_NOTIFICATIONS key:KYAUserDefaultsKeyManualChangeNotificationsDisabled]];
+    [settings addObject:[[KYAUserDefaultsSetting alloc] initWithTitle:KYA_L10N_PAUSE_WHILE_SCREEN_LOCKED key:KYAUserDefaultsKeyPauseWhileScreenLockedEnabled]];
+    [settings addObject:[[KYAUserDefaultsSetting alloc] initWithTitle:KYA_L10N_DEACTIVATE_ON_SLEEP key:KYAUserDefaultsKeyDeactivateOnSleepEnabled]];
     
     self.settings = [settings copy];
 }

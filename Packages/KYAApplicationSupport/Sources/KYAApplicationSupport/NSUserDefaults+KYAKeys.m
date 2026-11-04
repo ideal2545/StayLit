@@ -71,6 +71,14 @@ KYA_GENERATE_BOOL_PROPERTY(areManualChangeNotificationsDisabled,
                            manualChangeNotificationsDisabled,
                            ManualChangeNotificationsDisabled);
 
+KYA_GENERATE_BOOL_PROPERTY(isPauseWhileScreenLockedEnabled,
+                           pauseWhileScreenLockedEnabled,
+                           PauseWhileScreenLockedEnabled);
+
+KYA_GENERATE_BOOL_PROPERTY(isDeactivateOnSleepEnabled,
+                           deactivateOnSleepEnabled,
+                           DeactivateOnSleepEnabled);
+
 KYA_GENERATE_BOOL_PROPERTY(isBatteryCapacityThresholdEnabled,
                            batteryCapacityThresholdEnabled,
                            BatteryCapacityThresholdEnabled);

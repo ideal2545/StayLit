@@ -72,8 +72,17 @@ Upstream [#172](https://github.com/newmarcel/KeepingYouAwake/issues/172). The Ad
 - **Still notify:** the activation ending on time, the battery or Low Power Mode turning it off, an external display, switching users, and `staylit://` URLs. URLs often come from scripts, so they count as automatic.
 - **How:** `KYAAppController` runs your own actions inside `performUserAction:`. An activation remembers whether you turned it off, because the deactivation callback arrives later on the main queue.
 
+### Pause when locked, turn off when asleep
+Upstream [#93](https://github.com/newmarcel/KeepingYouAwake/issues/93), [#98](https://github.com/newmarcel/KeepingYouAwake/issues/98) and [#108](https://github.com/newmarcel/KeepingYouAwake/issues/108). There are two new Advanced settings, both off by default:
+
+- **Pause while the screen is locked:** StayLit stops when the screen locks, so the Mac can sleep and the displays can turn off. It picks up where it left off when you unlock, with the same remaining time or end time. This uses the `com.apple.screenIsLocked` and `com.apple.screenIsUnlocked` distributed notifications.
+- **Deactivate when the Mac goes to sleep:** if you put the Mac to sleep while StayLit is on, it stays off after waking (`NSWorkspaceWillSleepNotification`). A paused activation is dropped too.
+- **Sharing the user-switch code:** the existing *Deactivate when switched to another user account* setting now uses the same pause and resume code. `KYASuspensionTracker` (in `KYAApplicationSupport`, with tests) resumes only after every reason has ended, e.g. the screen was locked and then another user logged in.
+- **Changes while paused:** turning StayLit off or starting a new activation while paused, e.g. with a `staylit://` URL, replaces the paused activation. Unlocking then doesn't bring the old one back.
+- **Testing:** the lock and sleep paths were not tested live, because that would lock or sleep the Mac.
+
 ### Not done (feature requests, left for later)
-Other lid-closed modes (#255 turn off on lid open, #266 screen-only), CLI status (#225), schedules (#189), and deactivating on lock/sleep (#93, #98, #108) are all new features, not compatibility work. #235 (activate on *window* mirroring / AirPlay) needs hardware to reproduce.
+Other lid-closed modes (#255 turn off on lid open, #266 screen-only), CLI status (#225) and schedules (#189) are new features, not compatibility work. #235 (activate on *window* mirroring / AirPlay) needs hardware to reproduce.
 
 ## Fork-specific setup
 - **Sparkle updates** point at `https://ideal2545.github.io/StayLit/appcast.xml`. That URL doesn't exist yet, so update checks fail quietly instead of offering upstream builds that would overwrite this fork. Shipping updates later needs GitHub Pages plus an appcast, and builds signed with the same Developer ID each time. Sparkle can also use an EdDSA key (`generate_keys`); upstream never set one.
