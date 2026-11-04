@@ -8,7 +8,11 @@ These changes aren't meant for upstream, so please don't send them to KeepingYou
 
 ### macOS 27 / Xcode 27.2
 - Upstream `main` already raised the deployment target to macOS 12 for Xcode 27. The project builds cleanly with Xcode 27.2 / the macOS 27 SDK and produces a universal (arm64 + x86_64) binary.
-- Replaced one deprecated `NSStatusItem.image` read with `button.image`. Two deprecation warnings remain on purpose (`highlightMode`, `popUpStatusItemMenu:`). Their replacements change click/highlight behavior and need hands-on testing.
+- Replaced the deprecated status item calls:
+  - The `NSStatusItem.image` read is now `button.image`.
+  - `popUpStatusItemMenu:` now attaches the menu to the status item only while it's open and opens it with `performClick:`. A plain click still runs the primary action.
+  - `highlightMode` is gone. The hidden `MenuBarIconHighlightDisabled` default still works. It turns off the press highlight (`highlightsBy`), and it opens the menu with `popUpMenuPositioningItem:atLocation:inView:`, which doesn't highlight the button.
+  - The build has no deprecation warnings.
 
 ### Bug fixes
 | Upstream issue | Fix |

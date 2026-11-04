@@ -32,7 +32,6 @@
 - (void)configureStatusItem
 {
     Auto statusItem = [[NSStatusBar systemStatusBar] statusItemWithLength:NSVariableStatusItemLength];
-    statusItem.highlightMode = ![NSUserDefaults standardUserDefaults].kya_menuBarIconHighlightDisabled;
     if([statusItem respondsToSelector:@selector(behavior)])
     {
         statusItem.behavior = NSStatusItemBehaviorTerminationOnRemoval;
@@ -45,6 +44,14 @@
     Auto button = statusItem.button;
     
     [button sendActionOn:NSEventMaskLeftMouseUp|NSEventMaskRightMouseUp];
+
+    // Replaces the deprecated highlightMode: the hidden
+    // MenuBarIconHighlightDisabled default turns off the press highlight.
+    if([NSUserDefaults standardUserDefaults].kya_menuBarIconHighlightDisabled
+       && [button.cell isKindOfClass:[NSButtonCell class]])
+    {
+        ((NSButtonCell *)button.cell).highlightsBy = NSNoCellMask;
+    }
     button.target = self;
     button.action = @selector(toggleStatus:);
     
@@ -108,6 +115,38 @@
 
 #pragma mark - Menu
 
+// Replaces the deprecated -[NSStatusItem popUpStatusItemMenu:] and
+// highlightMode. The menu is attached to the status item only while it
+// is open, so a plain click still runs the primary action.
+- (void)showMenu:(NSMenu *)menu
+{
+    Auto statusItem = self.systemStatusItem;
+    Auto button = statusItem.button;
+    if(button == nil) { return; }
+
+    if(NSUserDefaults.standardUserDefaults.kya_isMenuBarIconHighlightDisabled)
+    {
+        // Show the menu below the button without highlighting it.
+        Auto bounds = button.bounds;
+        Auto location = NSMakePoint(NSMinX(bounds), button.isFlipped ? NSMaxY(bounds) : NSMinY(bounds));
+        [menu popUpMenuPositioningItem:nil atLocation:location inView:button];
+        return;
+    }
+
+    // The system positions the menu and highlights the button. -performClick:
+    // returns once the menu has closed.
+    statusItem.menu = menu;
+    @try
+    {
+        [button performClick:nil];
+    }
+    @finally
+    {
+        // Always detach, or plain clicks would open the menu from now on.
+        statusItem.menu = nil;
+    }
+}
+
 - (void)showMenuFromDataSource
 {
     Auto dataSource = self.dataSource;
@@ -116,7 +155,7 @@
         Auto menu = [dataSource menuForStatusItemController:self];
         if(menu != nil)
         {
-            [self.systemStatusItem popUpStatusItemMenu:menu];
+            [self showMenu:menu];
         }
     }
 }

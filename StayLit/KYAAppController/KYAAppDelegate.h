@@ -11,7 +11,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface KYAAppDelegate : NSObject <NSApplicationDelegate>
+@interface KYAAppDelegate : NSObject <NSApplicationDelegate, NSMenuItemValidation>
 
 - (IBAction)showSettingsWindow:(id)sender;
 
