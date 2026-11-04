@@ -37,8 +37,22 @@ It now has its own test target (9 tests). The whole suite is 62 tests, all passi
 
 Each PR was merged with its original commits, so the authors keep authorship in the git history. They are also thanked in [CHANGELOG.md](CHANGELOG.md).
 
+### Keep awake when the lid is closed
+Upstream [#258](https://github.com/newmarcel/KeepingYouAwake/issues/258) and [#262](https://github.com/newmarcel/KeepingYouAwake/issues/262) asked for this. `caffeinate` can't stop clamshell sleep, so the opt-in setting turns the system-wide `pmset disablesleep` setting on while an activation runs.
+
+- **Logic:** `KYALidSleepController` in `KYAApplicationSupport`. It turns `SleepDisabled` on only when it's off, records that before changing anything, and turns it off only when it was the one that turned it on. If it can't read the value, it changes nothing. It restores the setting on deactivation, when the option is switched off, when the app quits (waiting up to 10 seconds), and on the next launch after a crash. All commands run in order on one serial queue.
+- **Running as root from the sandbox:** the sandbox blocks `sudo`, so the app runs a helper script from its Application Scripts folder (`~/Library/Application Scripts/com.principia29.StayLit/staylit-lid-helper.sh`) through `NSUserUnixTask`, which runs outside the sandbox. That's the same approach Amphetamine uses. The script text lives in `KYALidSleepController.m`; bump `KYALidSleepHelperScriptVersion` when it changes.
+- **Permission:** a one-time administrator prompt writes `/etc/sudoers.d/staylit` for the current user, allowing only `/usr/bin/pmset -a disablesleep 1` and `0`. The rule is checked with `visudo -cf` before it's installed. An existing rule that already allows those commands, such as Amphetamine's, is used as is.
+- **Setup UI:** a warning, then a save panel for the script (folder and name are checked), with a copy-to-Terminal fallback, then the permission prompt. Cancelling or failing switches the option back off.
+- **Tests:** 16 unit tests use a fake runner, so they never touch real power settings. A live test of the signed app used a stub helper that only logs.
+- **Safety:** the admin prompt never runs the user-writable script as root (the root command is passed inline), commands wait for completion instead of timing out, restore reads the current value first, and a missing or unreadable value means "change nothing".
+- **Known limitations:**
+  - If StayLit crashes right after restoring, and before it records that, and you then turn `disablesleep` on yourself before the next launch, that launch turns it off again.
+  - On quit, StayLit waits up to 10 seconds for the restore. If that isn't enough, the next launch finishes it.
+  - The permission check uses `sudo -n -l`. An unrelated `NOPASSWD` sudo rule can make it pass while the `pmset` commands still need a password. The option then simply doesn't work.
+
 ### Not done (feature requests, left for later)
-Lid-closed modes (#255, #258, #262, #266), CLI status (#225), notification toggles (#172), schedules (#189), keyboard shortcut (#190), and deactivating on lock/sleep (#93, #98, #108) are all new features, not compatibility work. #235 (activate on *window* mirroring / AirPlay) needs hardware to reproduce.
+Other lid-closed modes (#255 turn off on lid open, #266 screen-only), CLI status (#225), notification toggles (#172), schedules (#189), keyboard shortcut (#190), and deactivating on lock/sleep (#93, #98, #108) are all new features, not compatibility work. #235 (activate on *window* mirroring / AirPlay) needs hardware to reproduce.
 
 ## Fork-specific setup
 - **Sparkle updates** point at `https://ideal2545.github.io/StayLit/appcast.xml`. That URL doesn't exist yet, so update checks fail quietly instead of offering upstream builds that would overwrite this fork. Shipping updates later needs GitHub Pages plus an appcast, and builds signed with the same Developer ID each time. Sparkle can also use an EdDSA key (`generate_keys`); upstream never set one.

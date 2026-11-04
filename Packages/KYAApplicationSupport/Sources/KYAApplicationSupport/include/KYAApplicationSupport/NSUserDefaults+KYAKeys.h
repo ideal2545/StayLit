@@ -22,6 +22,8 @@ KYA_EXPORT NSString * const KYAUserDefaultsKeyBatteryCapacityThresholdEnabled;
 KYA_EXPORT NSString * const KYAUserDefaultsKeyBatteryCapacityThreshold;
 KYA_EXPORT NSString * const KYAUserDefaultsKeyLowPowerModeMonitoringEnabled;
 KYA_EXPORT NSString * const KYAUserDefaultsKeyPreReleaseUpdatesEnabled;
+KYA_EXPORT NSString * const KYAUserDefaultsKeyKeepAwakeWithLidClosed;
+KYA_EXPORT NSString * const KYAUserDefaultsKeyLidSleepDisabledByApp;
 
 @interface NSUserDefaults (KYAKeys)
 
@@ -57,6 +59,14 @@ KYA_EXPORT NSString * const KYAUserDefaultsKeyPreReleaseUpdatesEnabled;
 
 /// Returns YES if the app should deactivate when the user account is switched.
 @property (nonatomic, getter=kya_isDeactivateOnUserSwitchEnabled) BOOL kya_deactivateOnUserSwitchEnabled;
+
+/// Returns YES if the app should keep the Mac awake with the lid closed,
+/// by turning the system-wide `pmset disablesleep` setting on while active.
+@property (nonatomic, getter=kya_isKeepAwakeWithLidClosedEnabled) BOOL kya_keepAwakeWithLidClosedEnabled;
+
+/// Internal: YES while the app itself has turned `pmset disablesleep` on,
+/// so it knows to turn it off again (also after a crash).
+@property (nonatomic, getter=kya_isLidSleepDisabledByApp) BOOL kya_lidSleepDisabledByApp;
 
 @end
 

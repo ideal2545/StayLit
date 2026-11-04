@@ -42,6 +42,33 @@
     [super viewDidLoad];
 
     [self configureAdvancedSettings];
+    
+    // The app can switch a setting back off (e.g. when lid-closed setup is
+    // cancelled), so keep the checkboxes in sync with the stored values.
+    [NSNotificationCenter.defaultCenter addObserver:self
+                                           selector:@selector(userDefaultsDidChange:)
+                                               name:NSUserDefaultsDidChangeNotification
+                                             object:nil];
+}
+
+- (void)dealloc
+{
+    [NSNotificationCenter.defaultCenter removeObserver:self name:NSUserDefaultsDidChangeNotification object:nil];
+}
+
+- (void)userDefaultsDidChange:(NSNotification *)notification
+{
+    AutoWeak weakSelf = self;
+    dispatch_async(dispatch_get_main_queue(), ^{
+        Auto strongSelf = weakSelf;
+        if(strongSelf == nil || strongSelf.isViewLoaded == NO) { return; }
+        
+        for(KYAUserDefaultsSetting *setting in strongSelf.settings)
+        {
+            [setting willChangeValueForKey:@"value"];
+            [setting didChangeValueForKey:@"value"];
+        }
+    });
 }
 
 #pragma mark - Configuration
@@ -54,6 +81,7 @@
     [settings addObject:[[KYAUserDefaultsSetting alloc] initWithTitle:KYA_L10N_ALLOW_DISPLAY_SLEEP key:KYAUserDefaultsKeyAllowDisplaySleep]];
     [settings addObject:[[KYAUserDefaultsSetting alloc] initWithTitle:KYA_L10N_ACTIVATE_ON_EXTERNAL_DISPLAY key:KYAUserDefaultsKeyActivateOnExternalDisplayConnectedEnabled]];
     [settings addObject:[[KYAUserDefaultsSetting alloc] initWithTitle:KYA_L10N_DEACTIVATE_ON_USER_SWITCH key:KYAUserDefaultsKeyDeactivateOnUserSwitchEnabled]];
+    [settings addObject:[[KYAUserDefaultsSetting alloc] initWithTitle:KYA_L10N_KEEP_AWAKE_WITH_LID_CLOSED key:KYAUserDefaultsKeyKeepAwakeWithLidClosed]];
     
     self.settings = [settings copy];
 }

@@ -14,7 +14,12 @@ StayLit is a small wrapper around Apple's `caffeinate` command line utility, whi
 
 ### Does it work on a MacBook with a closed lid?
 
-No. macOS has *(sensible)* limits here, and heat is a concern, so StayLit only prevents sleep on desktop Macs and on portable Macs with the lid open.
+Yes, with an opt-in setting: *Settings > Advanced > Keep awake when the lid is closed*. On its own, `caffeinate` can't stop the sleep that happens when you close the lid. With this setting on, StayLit turns on the macOS `disablesleep` power setting while it's active, and turns it off again when it stops.
+
+- **One-time setup:** StayLit saves a small helper script into its scripts folder and asks for your administrator password once. That adds a rule (`/etc/sudoers.d/staylit`) that allows exactly `pmset -a disablesleep 1` and `pmset -a disablesleep 0`, nothing else.
+- **Your own setting is respected:** if you already turned `disablesleep` on yourself, StayLit leaves it on and never turns it off.
+- **Heat warning:** don't keep a closed MacBook in a bag or other closed space while StayLit is active. It can get hot, and the battery drains faster. StayLit's battery settings still end the activation.
+- **To remove it:** turn the setting off, then delete `~/Library/Application Scripts/com.principia29.StayLit/staylit-lid-helper.sh` and `/etc/sudoers.d/staylit`.
 
 ## Is this dangerous?
 
