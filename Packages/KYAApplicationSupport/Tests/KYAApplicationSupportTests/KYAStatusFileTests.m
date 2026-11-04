@@ -52,6 +52,7 @@ static NSString * const KYAStatusFileTestSuiteName = @"KYAStatusFileTests";
     XCTAssertEqualObjects(dictionary[@"ends"], @2000);
     XCTAssertEqualObjects(dictionary[@"lidSleepDisabledByStayLit"], @NO);
     XCTAssertEqualObjects(dictionary[@"lidClosedSetupInProgress"], @NO);
+    XCTAssertEqualObjects(dictionary[@"batteryCutoffIgnored"], @NO);
     XCTAssertEqualObjects(dictionary[@"settings"][@"lidClosedMode"], @YES);
     XCTAssertEqualObjects(dictionary[@"settings"][@"pauseWhileScreenLocked"], @YES);
     XCTAssertEqualObjects(dictionary[@"settings"][@"deactivateOnSleep"], @NO);

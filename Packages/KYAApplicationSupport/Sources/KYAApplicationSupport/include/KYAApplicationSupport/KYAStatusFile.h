@@ -24,6 +24,9 @@ FOUNDATION_EXPORT const NSInteger KYAStatusFileSchemaVersion;
 @property (nonatomic, getter=isPaused) BOOL paused;
 /// YES while the lid-closed setup (warning, helper, password) is open.
 @property (nonatomic, getter=isLidClosedSetupInProgress) BOOL lidClosedSetupInProgress;
+/// YES when the activation started at or below the battery cutoff, so the
+/// cutoff doesn't end it.
+@property (nonatomic, getter=isBatteryCutoffIgnored) BOOL batteryCutoffIgnored;
 @end
 
 /// Writes the status file for the `staylit` command line tool.
@@ -39,7 +42,8 @@ FOUNDATION_EXPORT const NSInteger KYAStatusFileSchemaVersion;
 /// - `updated` (seconds since 1970)
 /// - `active` (bool), `paused` (bool)
 /// - `ends` (seconds since 1970): left out when indefinite or off
-/// - `lidSleepDisabledByStayLit` (bool), `lidClosedSetupInProgress` (bool)
+/// - `lidSleepDisabledByStayLit` (bool), `lidClosedSetupInProgress` (bool),
+///   `batteryCutoffIgnored` (bool)
 /// - `settings` (object of bools and numbers): `lidClosedMode`,
 ///   `allowDisplaySleep`, `batteryThresholdEnabled`, `batteryThreshold`,
 ///   `deactivateOnLowPowerMode`, `pauseWhileScreenLocked`,
@@ -64,7 +68,8 @@ FOUNDATION_EXPORT const NSInteger KYAStatusFileSchemaVersion;
                               now:(NSDate *)now;
 
 /// Hands the status to the writer script, if it is installed. Writes run
-/// one at a time and in order, on a private queue.
+/// one at a time on a private queue, and only the newest waiting status is
+/// written, so an older status can never replace a newer one.
 - (void)writeStatus:(KYAStatus *)status defaults:(NSUserDefaults *)defaults version:(NSString *)version;
 
 /// Blocks until queued writes have finished, or `timeout` seconds passed.

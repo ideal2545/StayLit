@@ -97,18 +97,18 @@ StayLit includes a command line tool, made to be easy for scripts and AI agents 
 /Applications/StayLit.app/Contents/Resources/staylit install
 ```
 
-This puts a small status-writer script in StayLit's scripts folder and links `staylit` into `/usr/local/bin` (or `~/.local/bin`; pick another folder with `--bin`). The sandbox hides StayLit's own folders from other apps, so StayLit runs that script to save its state in `~/Library/Application Support/StayLit/status.json`, where the command can read it. `staylit uninstall` removes both.
+This puts a small status-writer script in StayLit's scripts folder and links `staylit` into `/usr/local/bin` (or `~/.local/bin`; pick another folder with `--bin`). An existing `staylit` there that isn't StayLit's is left alone unless you add `--force`. The sandbox hides StayLit's own folders from other apps, so StayLit runs that script to save its state in `~/Library/Application Support/StayLit/status.json`, where the command can read it. `staylit uninstall` removes the script, the status file and every link `install` made.
 
 | Command | What it does |
 | --- | --- |
 | `staylit status` | Whether StayLit is on, until when, and whether lid-closed mode is on |
 | `staylit on` | Makes sure StayLit is on. If it's already on, it's left as it is. |
-| `staylit on --for 2h` | On for a duration: `90s`, `45m`, `2h`, `1h30m`, or a number of minutes |
+| `staylit on --for 2h` | On for a duration: `90s`, `45m`, `2h`, `1h30m`, or a number of minutes (up to a year) |
 | `staylit on --until 17:00` | On until a time, or a date and time such as `2026-10-03T17:00` |
 | `staylit on --indefinitely` | On until turned off |
 | `staylit off` | Makes sure StayLit is off |
 | `staylit lid on` / `lid off` | Turns lid-closed mode on (with the on-screen setup) or off |
-| `staylit check lid [--for 2h]` | Checks that the Mac will stay awake with the lid closed, and lists what to fix |
+| `staylit check lid [--for 2h]` | Checks that the Mac will stay awake with the lid closed (for at least that long, give or take a minute), and lists what to fix |
 
 - **It confirms:** every command waits until StayLit reports the new state, then prints it.
 - **`--json`:** add it to any command to get one JSON object, with `ok` and a `state` object (`check lid` also has `checks`, each with `name`, `status` of `ok`, `warn` or `fail`, `detail` and `fix`).

@@ -175,6 +175,7 @@ static NSString * const KYALidSleepLeaveDisabledActionIdentifier = @"KYALidSleep
     status.endDate = self.sleepWakeTimer.fireDate;
     status.paused = self.suspensionTracker.isSuspended;
     status.lidClosedSetupInProgress = self.isSettingUpLidSleep;
+    status.batteryCutoffIgnored = status.active && self.isBatteryOverrideEnabled;
     [self.statusFile writeStatus:status
                         defaults:NSUserDefaults.standardUserDefaults
                          version:NSBundle.mainBundle.kya_shortVersionString];
@@ -383,6 +384,7 @@ static NSString * const KYALidSleepLeaveDisabledActionIdentifier = @"KYALidSleep
 
 - (void)checkAndEnableBatteryOverride
 {
+    [self setNeedsStatusUpdate];
     Auto batteryMonitor = KYADevice.currentDevice.batteryMonitor;
     CGFloat currentCapacity = batteryMonitor.currentCapacity;
     CGFloat threshold = NSUserDefaults.standardUserDefaults.kya_batteryCapacityThreshold;
@@ -563,7 +565,10 @@ static NSString * const KYALidSleepLeaveDisabledActionIdentifier = @"KYALidSleep
 - (void)setUpKeepAwakeWithLidClosed
 {
     self.settingUpLidSleep = YES;
-    [self setNeedsStatusUpdate];
+    // Write now: this usually runs inside a main queue block, and the setup's
+    // dialogs keep that block running, so a queued write would only happen
+    // after the setup is over.
+    [self writeStatus];
     
     Auto defaults = NSUserDefaults.standardUserDefaults;
     BOOL ready = [self runLidSleepSetup];

@@ -19,6 +19,8 @@ static NSString * const KYAStatusWriterScriptName = @"staylit-status.sh";
 
 @interface KYAStatusFile ()
 @property (nonatomic) dispatch_queue_t queue;
+// Guarded by @synchronized(self): the newest status not yet handed to the writer.
+@property (nonatomic, nullable, copy) NSString *pendingJSON;
 @end
 
 @implementation KYAStatusFile
@@ -73,6 +75,7 @@ static NSString * const KYAStatusWriterScriptName = @"staylit-status.sh";
     }
     dictionary[@"lidSleepDisabledByStayLit"] = @(defaults.kya_isLidSleepDisabledByApp);
     dictionary[@"lidClosedSetupInProgress"] = @(status.isLidClosedSetupInProgress);
+    dictionary[@"batteryCutoffIgnored"] = @(status.isBatteryCutoffIgnored);
     dictionary[@"settings"] = settings;
     return [dictionary copy];
 }
@@ -90,8 +93,24 @@ static NSString * const KYAStatusWriterScriptName = @"staylit-status.sh";
 - (void)writeStatus:(KYAStatus *)status defaults:(NSUserDefaults *)defaults version:(NSString *)version
 {
     Auto json = [self.class JSONStringForStatus:status defaults:defaults version:version now:[NSDate date]];
+    BOOL drainScheduled;
+    @synchronized(self)
+    {
+        drainScheduled = (self.pendingJSON != nil);
+        self.pendingJSON = json;
+    }
+    if(drainScheduled) { return; }
     dispatch_async(self.queue, ^{
-        [self runWriterWithJSON:json];
+        NSString *next;
+        @synchronized(self)
+        {
+            next = self.pendingJSON;
+            self.pendingJSON = nil;
+        }
+        if(next != nil)
+        {
+            [self runWriterWithJSON:next];
+        }
     });
 }
 
@@ -104,7 +123,8 @@ static NSString * const KYAStatusWriterScriptName = @"staylit-status.sh";
     dispatch_semaphore_wait(semaphore, dispatch_time(DISPATCH_TIME_NOW, (int64_t)(timeout * (NSTimeInterval)NSEC_PER_SEC)));
 }
 
-/// Runs on the private queue and waits for the script, so writes stay in order.
+/// Runs on the private queue and waits for the script to finish, so two
+/// writes never overlap.
 - (void)runWriterWithJSON:(NSString *)json
 {
     Auto url = self.class.writerScriptURL;
@@ -131,8 +151,8 @@ static NSString * const KYAStatusWriterScriptName = @"staylit-status.sh";
         }
         dispatch_semaphore_signal(semaphore);
     }];
-    // Don't let a stuck script block later writes for long.
-    dispatch_semaphore_wait(semaphore, dispatch_time(DISPATCH_TIME_NOW, (int64_t)(5 * NSEC_PER_SEC)));
+    // No timeout: giving up early could let this write land after a newer one.
+    dispatch_semaphore_wait(semaphore, DISPATCH_TIME_FOREVER);
     [output.fileHandleForWriting closeFile];
     [errorOutput.fileHandleForWriting closeFile];
 }

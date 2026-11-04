@@ -20,6 +20,7 @@ STATUS_FILE="$HOME/Library/Application Support/StayLit/status.json"
 WRITER="$SCRIPTS_DIR/staylit-status.sh"
 WRITER_VERSION=1
 HELPER="$SCRIPTS_DIR/staylit-lid-helper.sh"
+LINK_RECORD="$HOME/Library/Application Support/StayLit/command-link"
 
 EXIT_OK=0
 EXIT_FAILED=1      # the state wasn't reached, or a check failed
@@ -38,7 +39,10 @@ json_escape() {
     s=${s//\"/\\\"}
     s=${s//$'\n'/\\n}
     s=${s//$'\t'/\\t}
-    printf '%s' "$s"
+    s=${s//$'\r'/\\r}
+    # Any other control characters can't appear raw in JSON; drop them.
+    printf '%s' "$s" | LC_ALL=C tr -d '\000-\010\013\014\016-\037'
+
 }
 
 # A JSON string, or null when empty.
@@ -106,14 +110,19 @@ require_install() {
 
 # ---------------------------------------------------------------- status
 
-# Reads a key from the status file; empty when missing.
+# The status file, read once per load so all values come from one snapshot.
+SNAPSHOT=""
+
+# Reads a key from the snapshot; empty when missing.
 get() {
-    plutil -extract "$1" raw -o - "$STATUS_FILE" 2>/dev/null
+    [ -n "$SNAPSHOT" ] || return 0
+    printf '%s' "$SNAPSHOT" | plutil -extract "$1" raw -o - - 2>/dev/null
 }
 
-# YES when StayLit is running and its status file is its own.
+# YES when StayLit is running and the snapshot is its own.
 is_running() {
-    [ -f "$STATUS_FILE" ] || return 1
+    SNAPSHOT=$(cat "$STATUS_FILE" 2>/dev/null)
+    [ -n "$SNAPSHOT" ] || return 1
     local pid name
     pid=$(get pid)
     [ -n "$pid" ] || return 1
@@ -127,6 +136,7 @@ load() {
     S_ACTIVE=false; S_PAUSED=false; S_ENDS=""; S_LID=false; S_SETUP=false; S_OWNED=false
     S_VERSION=""; S_UPDATED=""
     S_PAUSE_LOCK=false; S_SLEEP_OFF=false; S_BATT_ON=false; S_BATT=""; S_LOWPOWER=false; S_DISPLAY=false
+    S_CUTOFF_IGNORED=false
     is_running || return 0
     S_RUNNING=true
     S_VERSION=$(get version)
@@ -144,6 +154,7 @@ load() {
     S_BATT=${S_BATT%%.*}
     S_LOWPOWER=$(get settings.deactivateOnLowPowerMode)
     S_DISPLAY=$(get settings.allowDisplaySleep)
+    S_CUTOFF_IGNORED=$(get batteryCutoffIgnored)
 }
 
 # The live system values, read directly.
@@ -216,26 +227,46 @@ wait_for() {
 
 # ---------------------------------------------------------------- durations
 
+MAX_SECONDS=31536000   # one year
+
 # Seconds for 90s, 45m, 2h, 1h30m, or a plain number of minutes.
+# Numbers are always decimal (010m is ten minutes) and at most 6 digits.
 parse_duration() {
     local input=$1 total=0 number unit rest
     case "$input" in
-        indefinitely|forever|0) echo 0; return 0 ;;
+        indefinitely|forever) echo 0; return 0 ;;
         *[!0-9hms]*|'') return 1 ;;
     esac
-    if [[ "$input" =~ ^[0-9]+$ ]]; then echo $((input * 60)); return 0; fi
-    rest=$input
-    while [ -n "$rest" ]; do
-        [[ "$rest" =~ ^([0-9]+)([hms])(.*)$ ]] || return 1
-        number=${BASH_REMATCH[1]}; unit=${BASH_REMATCH[2]}; rest=${BASH_REMATCH[3]}
-        case $unit in
-            h) total=$((total + number * 3600)) ;;
-            m) total=$((total + number * 60)) ;;
-            s) total=$((total + number)) ;;
-        esac
-    done
-    [ $total -gt 0 ] || return 1
+    if [[ "$input" =~ ^[0-9]{1,6}$ ]]; then
+        total=$((10#$input * 60))
+    else
+        rest=$input
+        while [ -n "$rest" ]; do
+            [[ "$rest" =~ ^([0-9]{1,6})([hms])(.*)$ ]] || return 1
+            number=$((10#${BASH_REMATCH[1]})); unit=${BASH_REMATCH[2]}; rest=${BASH_REMATCH[3]}
+            case $unit in
+                h) total=$((total + number * 3600)) ;;
+                m) total=$((total + number * 60)) ;;
+                s) total=$((total + number)) ;;
+            esac
+        done
+    fi
+    [ $total -gt 0 ] && [ $total -le $MAX_SECONDS ] || return 1
     echo $total
+}
+
+# The end time StayLit uses for --until: HH:MM today, or tomorrow if it has
+# passed; or an exact YYYY-MM-DDTHH:MM. Empty when invalid.
+until_epoch() {
+    local value=$1 now target
+    now=$(date +%s)
+    if [[ "$value" =~ ^[0-9]{1,2}:[0-9]{2}$ ]]; then
+        target=$(date -j -f '%H:%M:%S' "$value:00" +%s 2>/dev/null) || return 1
+        [ "$target" -gt "$now" ] || target=$(date -j -v+1d -f '%H:%M:%S' "$value:00" +%s 2>/dev/null) || return 1
+    else
+        target=$(date -j -f '%Y-%m-%dT%H:%M:%S' "$value:00" +%s 2>/dev/null) || return 1
+    fi
+    echo "$target"
 }
 
 valid_until() {
@@ -261,7 +292,7 @@ cmd_on() {
     while [ $# -gt 0 ]; do
         case $1 in
             --for) [ $# -ge 2 ] || die $EXIT_USAGE "--for needs a duration, e.g. 2h"
-                   seconds=$(parse_duration "$2") || die $EXIT_USAGE "invalid duration: $2 (use e.g. 90s, 45m, 2h, 1h30m)"
+                   seconds=$(parse_duration "$2") || die $EXIT_USAGE "invalid duration: $2 (use e.g. 90s, 45m, 2h, 1h30m; at most a year)"
                    shift 2 ;;
             --indefinitely) seconds=0; shift ;;
             --until) [ $# -ge 2 ] || die $EXIT_USAGE "--until needs a time, e.g. 17:00"
@@ -278,16 +309,19 @@ cmd_on() {
         finish $EXIT_OK "Already on; left as it is."
     fi
 
-    local previous_ends=$S_ENDS was_active=$S_ACTIVE condition
+    local condition target
     if [ -n "$until" ]; then
+        target=$(until_epoch "$until")
+        [ -n "$target" ] || die $EXIT_USAGE "invalid time: $until"
+        [ "$target" -gt "$(date +%s)" ] || die $EXIT_FAILED "that time has already passed: $until"
         send "activate?until=$until"
-        condition='[ "$S_ACTIVE" = true ] && { [ "$was_active" != true ] || [ "$S_ENDS" != "$previous_ends" ]; }'
+        condition='[ "$S_ACTIVE" = true ] && [ -n "$S_ENDS" ] && [ $((S_ENDS - target)) -ge -60 ] && [ $((S_ENDS - target)) -le 60 ]'
     elif [ -n "$seconds" ]; then
         send "activate?seconds=$seconds"
         if [ "$seconds" = 0 ]; then
             condition='[ "$S_ACTIVE" = true ] && [ -z "$S_ENDS" ]'
         else
-            local target=$(( $(date +%s) + seconds ))
+            target=$(( $(date +%s) + seconds ))
             condition='[ "$S_ACTIVE" = true ] && [ -n "$S_ENDS" ] && [ $((S_ENDS - target)) -ge -5 ] && [ $((S_ENDS - target)) -le 5 ]'
         fi
     else
@@ -298,7 +332,6 @@ cmd_on() {
     wait_for 15 "$condition" || {
         load
         if [ "$S_RUNNING" != true ]; then finish $EXIT_TIMEOUT "StayLit didn't start in time."; fi
-        if [ -n "$until" ]; then finish $EXIT_FAILED "StayLit ignored the time; it must be in the future."; fi
         finish $EXIT_TIMEOUT "StayLit didn't confirm in time."
     }
     finish $EXIT_OK "Turned on."
@@ -380,7 +413,8 @@ cmd_check() {
     while [ $# -gt 0 ]; do
         case $1 in
             --for) [ $# -ge 2 ] || die $EXIT_USAGE "--for needs a duration"
-                   need=$(parse_duration "$2") || die $EXIT_USAGE "invalid duration: $2"
+                   case $2 in indefinitely|forever) need=0 ;;
+                       *) need=$(parse_duration "$2") || die $EXIT_USAGE "invalid duration: $2" ;; esac
                    need_text=$2
                    shift 2 ;;
             *) die $EXIT_USAGE "unknown option for check lid: $1" ;;
@@ -408,7 +442,8 @@ cmd_check() {
             add_check duration ok "It stays on until turned off." ""
         else
             local left=$((S_ENDS - now))
-            if [ -n "$need" ] && [ "$need" != 0 ] && [ $left -lt "$need" ]; then
+            # A minute of slack, so "on --for 2h" then "check lid --for 2h" passes.
+            if [ -n "$need" ] && [ "$need" != 0 ] && [ $left -lt $((need - 60)) ]; then
                 add_check duration fail "It turns off at $(human_date "$S_ENDS"), sooner than needed." "staylit on --for $need_text"
             elif [ -n "$need" ] && [ "$need" = 0 ]; then
                 add_check duration fail "It turns off at $(human_date "$S_ENDS")." "staylit on --indefinitely"
@@ -461,7 +496,9 @@ cmd_check() {
     local source percent lowpower
     source=$(power_source); percent=$(battery_percent); lowpower=$(low_power_mode)
     if [ "$source" = "Battery Power" ]; then
-        if [ "$S_BATT_ON" = true ] && [ -n "$percent" ] && [ -n "$S_BATT" ] && [ "$percent" -le "$S_BATT" ]; then
+        if [ "$S_BATT_ON" = true ] && [ "$S_CUTOFF_IGNORED" = true ]; then
+            add_check power warn "On battery${percent:+ at $percent%}. StayLit was turned on below the $S_BATT% cutoff, so it ignores the cutoff and runs until the battery is empty." "Plug in for long sessions."
+        elif [ "$S_BATT_ON" = true ] && [ -n "$percent" ] && [ -n "$S_BATT" ] && [ "$percent" -le "$S_BATT" ]; then
             add_check power fail "On battery at $percent%, at or below the $S_BATT% cutoff, so StayLit turns off." "Plug in, or lower the cutoff in Settings > Battery."
         elif [ "$S_BATT_ON" = true ] && [ -n "$percent" ] && [ -n "$S_BATT" ]; then
             add_check power warn "On battery at $percent%. StayLit turns off at $S_BATT%." "Plug in for long sessions."
@@ -527,11 +564,20 @@ default_bin_dir() {
     else echo "$HOME/.local/bin"; fi
 }
 
+# YES when $1 is our own link: a symlink to a staylit tool, or to this one.
+is_our_link() {
+    [ -L "$1" ] || return 1
+    local target
+    target=$(readlink -f "$1" 2>/dev/null)
+    [ "$target" = "$2" ] || [[ "$target" == *.app/Contents/Resources/staylit ]]
+}
+
 cmd_install() {
-    local bin="" self
+    local bin="" self force=false
     while [ $# -gt 0 ]; do
         case $1 in
             --bin) [ $# -ge 2 ] || die $EXIT_USAGE "--bin needs a folder"; bin=$2; shift 2 ;;
+            --force) force=true; shift ;;
             *) die $EXIT_USAGE "unknown option for install: $1" ;;
         esac
     done
@@ -543,11 +589,20 @@ cmd_install() {
         || die $EXIT_FAILED "couldn't write $WRITER"
 
     local link="$bin/staylit" linked=false
-    if [ "$link" != "$self" ]; then
-        mkdir -p "$bin" 2>/dev/null
-        if ln -sf "$self" "$link" 2>/dev/null; then linked=true; fi
-    else
+    if [ -e "$link" ] || [ -L "$link" ]; then
+        if [ "$link" != "$self" ] && ! is_our_link "$link" "$self" && [ "$force" != true ]; then
+            die $EXIT_FAILED "$link already exists and isn't a StayLit link; not replacing it. Use --bin to pick another folder, or --force."
+        fi
+    fi
+    if [ "$link" = "$self" ]; then
         linked=true
+    else
+        mkdir -p "$bin" 2>/dev/null
+        if ln -sfn "$self" "$link" 2>/dev/null; then
+            linked=true
+            mkdir -p "$(dirname "$LINK_RECORD")"
+            grep -qxF "$link" "$LINK_RECORD" 2>/dev/null || printf '%s\n' "$link" >> "$LINK_RECORD"
+        fi
     fi
 
     # Ask a running StayLit to write its state right away.
@@ -572,13 +627,13 @@ cmd_install() {
 }
 
 cmd_uninstall() {
-    local self dir link
+    local self link
     self=$(readlink -f "$0" 2>/dev/null || printf '%s' "$0")
-    for dir in /usr/local/bin "$HOME/.local/bin" /opt/homebrew/bin; do
-        link="$dir/staylit"
-        if [ -L "$link" ] && [ "$(readlink -f "$link")" = "$self" ]; then rm -f "$link"; fi
-    done
-    rm -f "$WRITER" "$STATUS_FILE"
+    # Every link install made, plus the default places.
+    while IFS= read -r link; do
+        [ -n "$link" ] && is_our_link "$link" "$self" && rm -f "$link"
+    done < <(cat "$LINK_RECORD" 2>/dev/null; echo /usr/local/bin/staylit; echo "$HOME/.local/bin/staylit")
+    rm -f "$WRITER" "$STATUS_FILE" "$LINK_RECORD"
     if [ "$JSON" = 1 ]; then printf '{"ok":true}\n'; else echo "Removed the status writer, the status file and the command link."; fi
     exit $EXIT_OK
 }
@@ -602,6 +657,7 @@ Commands
   lid off                     Turn off lid-closed mode
   check lid [--for 2h]        Will the Mac stay awake with the lid closed? Lists what to fix
   install [--bin DIR]         Set up this tool once: lets StayLit report its state, links staylit into DIR
+                              (an existing non-StayLit staylit there is kept unless you add --force)
   uninstall                   Undo install
   help                        Show this help
 
