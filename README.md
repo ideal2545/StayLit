@@ -1,6 +1,8 @@
 # KeepingYouAwake
 
-KeepingYouAwake is a small menu bar utility for macOS *(Version 10.13 and newer)* that can prevent your Mac from entering sleep mode for a predefined duration, until a certain time, or as long as it is activated.
+> **This is a community-maintained fork** of [newmarcel/KeepingYouAwake](https://github.com/newmarcel/KeepingYouAwake) by Marcel Dierkes, kept building and working on macOS 27 / Xcode 27.2 and carrying fixes and pull requests that are still open upstream. All credit for the original app goes to Marcel; it remains MIT licensed (see [LICENSE](LICENSE)). See [FORK-NOTES.md](FORK-NOTES.md) for what differs from upstream. Please do not report issues with this fork to the upstream project.
+
+KeepingYouAwake is a small menu bar utility for macOS *(version 12 and newer)* that can prevent your Mac from entering sleep mode for a predefined duration, until a certain time, or as long as it is activated.
 
 https://keepingyouawake.app/
 

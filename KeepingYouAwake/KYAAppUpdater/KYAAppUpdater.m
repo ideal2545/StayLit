@@ -14,8 +14,8 @@
 #import <KYAApplicationSupport/KYAApplicationSupport.h>
 #import <Sparkle/Sparkle.h>
 
-static NSString * const KYAAppUpdaterReleaseFeedURLString = @"https://newmarcel.github.io/KeepingYouAwake/appcast.xml";
-static NSString * const KYAAppUpdaterPreReleaseFeedURLString = @"https://newmarcel.github.io/KeepingYouAwake/prerelease-appcast.xml";
+static NSString * const KYAAppUpdaterReleaseFeedURLString = @"https://ideal2545.github.io/StayLit/appcast.xml";
+static NSString * const KYAAppUpdaterPreReleaseFeedURLString = @"https://ideal2545.github.io/StayLit/prerelease-appcast.xml";
 
 @interface KYAAppUpdater () <SPUUpdaterDelegate>
 @property (nonatomic) SPUStandardUpdaterController *updaterController;
