@@ -12,6 +12,7 @@ Fork additions ([ideal2545/StayLit](https://github.com/ideal2545/StayLit)), buil
 
 - added _Settings > Advanced > Keep awake when the lid is closed_ (opt-in, upstream [#258](https://github.com/newmarcel/KeepingYouAwake/issues/258) and [#262](https://github.com/newmarcel/KeepingYouAwake/issues/262))
 	- turns the macOS `disablesleep` power setting on while active and off again afterwards, and never turns off a `disablesleep` you set yourself
+	- tells you when something else turns `disablesleep` off during an activation, and when StayLit turns sleep back on, with a _Leave Sleep Disabled_ button
 	- one-time setup: a helper script in the app's scripts folder, plus an administrator password for a sudoers rule limited to `pmset -a disablesleep 1` and `0`
 - renamed the app to **StayLit** with the bundle ID `com.principia29.StayLit`; it uses a fresh settings container and can run next to the original app
 	- added the `staylit:///` URL scheme; `keepingyouawake:///` still works

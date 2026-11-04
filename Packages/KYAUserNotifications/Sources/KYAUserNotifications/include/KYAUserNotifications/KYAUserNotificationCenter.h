@@ -30,6 +30,9 @@ typedef NS_ENUM(NSUInteger, KYAUserNotificationAuthorizationStatus)
 
 typedef void(^KYAUserNotificationsAuthorizationCompletion)(KYAUserNotificationAuthorizationStatus, NSError *_Nullable);
 
+/// Called on the main queue when the user clicks a notification's action button.
+typedef void(^KYAUserNotificationActionHandler)(NSString *actionIdentifier, NSDictionary *userInfo);
+
 /// Manages authorization and posting of user notifications.
 API_AVAILABLE(macos(11.0))
 @interface KYAUserNotificationCenter : NSObject
@@ -60,6 +63,18 @@ API_AVAILABLE(macos(11.0))
 /// notification center.
 - (void)clearAllDeliveredNotifications;
 
+/// Registers a kind of notification with one action button.
+/// Notifications with this `categoryIdentifier` show the button.
+/// @param categoryIdentifier The notification category
+/// @param actionIdentifier Passed to the `actionHandler` when the button is clicked
+/// @param actionTitle The localized button title
+- (void)registerCategoryWithIdentifier:(NSString *)categoryIdentifier
+                      actionIdentifier:(NSString *)actionIdentifier
+                           actionTitle:(NSString *)actionTitle;
+
+/// Called on the main queue when the user clicks an action button.
+@property (copy, nonatomic, nullable) KYAUserNotificationActionHandler actionHandler;
+
 @end
 
 /// A generic user notification object usable for creating
@@ -84,6 +99,11 @@ API_AVAILABLE(macos(11.0))
 /// @note Use the custom `-setLocalizedBodyTextWithKey:arguments:`
 ///       instead for setting this property.
 @property (copy, nonatomic, nullable) NSString *bodyText;
+
+/// The category registered with
+/// `-registerCategoryWithIdentifier:actionIdentifier:actionTitle:`,
+/// for notifications with an action button.
+@property (copy, nonatomic, nullable) NSString *categoryIdentifier;
 
 /// Arbitrary custom information related to the user notification.
 @property (copy, nonatomic, nullable) NSDictionary<id, id> *userInfo;

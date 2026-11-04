@@ -20,6 +20,7 @@ Yes, with an opt-in setting: *Settings > Advanced > Keep awake when the lid is c
 
 - **One-time setup:** StayLit saves a small helper script into its scripts folder and asks for your administrator password once. That adds a rule (`/etc/sudoers.d/staylit`) that allows exactly `pmset -a disablesleep 1` and `pmset -a disablesleep 0`, nothing else.
 - **Your own setting is respected:** if you already turned `disablesleep` on yourself, StayLit leaves it on and never turns it off.
+- **It tells you when it can't be sure:** `disablesleep` doesn't record who turned it on, so if you also turn it on while StayLit has it on, StayLit can't tell. When StayLit turns sleep back on, the notification has a *Leave Sleep Disabled* button. If something else turns `disablesleep` off during an activation, StayLit leaves it off and tells you that closing the lid will now put the Mac to sleep.
 - **Heat warning:** don't keep a closed MacBook in a bag or other closed space while StayLit is active. It can get hot, and the battery drains faster. StayLit's battery settings still end the activation.
 - **To remove it:** turn the setting off, then delete `~/Library/Application Scripts/com.principia29.StayLit/staylit-lid-helper.sh` and `/etc/sudoers.d/staylit`.
 
